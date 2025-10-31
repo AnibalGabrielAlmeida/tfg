@@ -364,6 +364,17 @@ function App() {
     rescheduleAtNextDownbeat(progression, bpm, key);
   }, [progression, bpm, key, isPlaying]);
 
+  useEffect(() => {
+  const onKey = (e: KeyboardEvent) => {
+    if (e.code === "Space") {
+      e.preventDefault();
+      isPlaying ? handleStop() : handlePlay();
+    }
+  };
+  window.addEventListener("keydown", onKey);
+  return () => window.removeEventListener("keydown", onKey);
+}, [isPlaying]); // deps mínimas
+
   // -----------------
   // Render principal
   // -----------------
