@@ -1,14 +1,28 @@
+// --------------------------------------------------
+// 🎵 ChordFlow — Presets de progresiones base
+// --------------------------------------------------
+// Este módulo define presets prearmados (Pop y Neo)
+// que se pueden cargar en la app para probar el motor
+// de audio, la reproducción y las recomendaciones.
+// --------------------------------------------------
+
 import type { ChordBlock } from "../progression/types";
 
+// 🎚️ Estructura de un preset simple (nombre, tonalidad, bpm, estilo, progresión)
 export type SimplePreset = {
-  title: string;
-  key: "C" | "G" | "D" | "F";      // ajustado a tus keys actuales
-  bpm: number;
-  style: "Pop" | "Neo";
-  progression: ChordBlock[];
+  title: string;                    // Nombre visible del preset
+  key: "C" | "G" | "D" | "F";       // Tonalidad (limitada a las disponibles en el panel)
+  bpm: number;                      // Velocidad de reproducción
+  style: "Pop" | "Neo";             // Estilo (define la matriz de Markov)
+  progression: ChordBlock[];        // Lista de acordes que conforman la progresión
 };
 
-// Pop clásico: I–vi–IV–V (4 beats c/u)
+// --------------------------------------------------
+// 🎸 Preset Pop clásico: I–vi–IV–V
+// --------------------------------------------------
+// Progresión fundamental del pop/rock.
+// Cada acorde dura 4 beats (un compás completo en 4/4).
+// Tonalidad por defecto: C mayor, BPM: 100.
 export function getPopPreset(): SimplePreset {
   return {
     title: "Pop — I–vi–IV–V",
@@ -24,7 +38,12 @@ export function getPopPreset(): SimplePreset {
   };
 }
 
-// Neo simple (diatónico para tu motor actual): ii–V–I–vi
+// --------------------------------------------------
+// 🎹 Preset Neo-Soul simple: ii–V–I–vi
+// --------------------------------------------------
+// Secuencia característica de progresiones suaves
+// o reharmonizadas (muy usada en neo-soul y jazz).
+// Tonalidad por defecto: C mayor, BPM: 86.
 export function getNeoPreset(): SimplePreset {
   return {
     title: "Neo — ii–V–I–vi",
