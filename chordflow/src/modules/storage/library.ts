@@ -1,48 +1,73 @@
-// Persistencia mínima en localStorage para progresiones
+// --------------------------------------------------
+// 💾 ChordFlow — Persistencia mínima (localStorage)
+// --------------------------------------------------
+// Este módulo guarda, carga y administra presets
+// (progresiones armónicas) usando el almacenamiento
+// local del navegador (sin backend aún).
+// --------------------------------------------------
+
 import type { ChordBlock } from "../progression/types";
 
+// 🔑 Clave única usada en localStorage
 const LS_KEY = "chordflow.presets.v1";
 
+// 🧱 Estructura de un preset guardado
 export type Preset = {
-  id: string;            // uid
-  title: string;         // nombre visible
-  createdAt: number;     // epoch ms
-  updatedAt: number;     // epoch ms
-  bpm: number;
-  key: string;           // tonalidad (C, G, D, F…)
-  style: string;         // Pop/Neo (string simple)
-  progression: ChordBlock[];
+  id: string;            // Identificador único (uid)
+  title: string;         // Nombre visible
+  createdAt: number;     // Fecha de creación (epoch ms)
+  updatedAt: number;     // Fecha de última modificación (epoch ms)
+  bpm: number;           // Velocidad
+  key: string;           // Tonalidad (C, G, D, F…)
+  style: string;         // Estilo ("Pop", "Neo", etc.)
+  progression: ChordBlock[]; // Secuencia de acordes
 };
 
+// El "Store" interno es un objeto indexado por ID
 type Store = Record<string, Preset>;
 
+// --------------------------------------------------
+// 📖 Funciones internas de lectura/escritura
+// --------------------------------------------------
+
+// Lee la base de datos local (JSON) desde localStorage
 function readStore(): Store {
   try {
     const raw = localStorage.getItem(LS_KEY);
     return raw ? (JSON.parse(raw) as Store) : {};
   } catch {
+    // fallback si hay error o datos corruptos
     return {};
   }
 }
 
+// Escribe el store actualizado en localStorage
 function writeStore(store: Store) {
   localStorage.setItem(LS_KEY, JSON.stringify(store));
 }
 
+// Genera un ID único para cada preset
 function uid() {
   return `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// --------------------------------------------------
+// 🗂️ API pública — CRUD completo de presets
+// --------------------------------------------------
+
+// 📋 Lista todos los presets guardados, ordenados por fecha
 export function listPresets(): Preset[] {
   const store = readStore();
   return Object.values(store).sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
+// 🔍 Obtiene un preset por su ID
 export function getPreset(id: string): Preset | null {
   const store = readStore();
   return store[id] ?? null;
 }
 
+// 💾 Guarda un nuevo preset (crear)
 export function saveNewPreset(data: Omit<Preset, "id" | "createdAt" | "updatedAt">): Preset {
   const store = readStore();
   const now = Date.now();
@@ -52,6 +77,7 @@ export function saveNewPreset(data: Omit<Preset, "id" | "createdAt" | "updatedAt
   return preset;
 }
 
+// ✏️ Actualiza un preset existente (modificar)
 export function updatePreset(id: string, patch: Partial<Preset>): Preset | null {
   const store = readStore();
   if (!store[id]) return null;
@@ -62,6 +88,7 @@ export function updatePreset(id: string, patch: Partial<Preset>): Preset | null 
   return merged;
 }
 
+// 🗑️ Elimina un preset por ID
 export function deletePreset(id: string) {
   const store = readStore();
   if (store[id]) {
@@ -70,9 +97,12 @@ export function deletePreset(id: string) {
   }
 }
 
+// 📄 Duplica un preset existente (crear copia independiente)
 export function duplicatePreset(id: string): Preset | null {
   const base = getPreset(id);
   if (!base) return null;
+
+  // Se clona la progresión para evitar referencias compartidas
   return saveNewPreset({
     title: `${base.title} (copia)`,
     bpm: base.bpm,
