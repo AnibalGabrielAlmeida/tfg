@@ -1,10 +1,10 @@
 // --------------------------------------------------
 // 🔊 ChordFlow — Motor de audio (Tone.js)
 // --------------------------------------------------
-// - Nodos y cadena de efectos estilo EP/Rhodes
-// - Programación de acordes en loop 4/4
-// - Reschedule suave para reflejar cambios en vivo
-// - Salvaguardas contra notas colgadas en el loopEnd
+// - EP/Rhodes simple con cadena FX
+// - Programación de acordes en loop 4/4 (Ticks, sin redondeos)
+// - ADSR suave para evitar clicks (duración acotada < loopEnd)
+// - Re-schedule al próximo downbeat (compás siguiente) en vivo
 // --------------------------------------------------
 
 import * as Tone from "tone";
@@ -12,9 +12,10 @@ import type { ChordBlock } from "../progression/types";
 import { chordNotesFromDegree } from "../theory/roman";
 
 // --------------------------------------------------
-// 🎛️ Nodos de audio (singleton) y cadena de efectos
+// 🎛️ Nodos de audio
 // synth → volume → tremolo → chorus → reverb → comp → limiter → out
 // --------------------------------------------------
+const Transport = Tone.getTransport();
 const limiter = new Tone.Limiter(-3).toDestination();
 const compressor = new Tone.Compressor({
   threshold: -16,
@@ -49,16 +50,15 @@ const synth = new Tone.PolySynth(Tone.Synth, {
   envelope: { attack: 0.012, decay: 0.18, sustain: 0.55, release: 0.7 },
 }).connect(volume);
 
-// Límite de polifonía (prop no tipeada en TS, pero soportada en runtime)
+// Límite de polifonía (runtime)
 (synth as any).maxPolyphony = 8;
-
-// Atenuación extra del instrumento (por si el preset suma ganancia)
+// Atenuación extra del instrumento
 if ((synth as any).volume?.value !== undefined) {
   (synth as any).volume.value = -4;
 }
 
 // --------------------------------------------------
-// 🧠 Estado interno de schedules
+// 🧠 Estado interno
 // --------------------------------------------------
 let scheduledIds: number[] = [];
 let pendingReschedule: number | null = null;
@@ -66,14 +66,11 @@ let pendingReschedule: number | null = null;
 // --------------------------------------------------
 // 🛠️ Utilidades
 // --------------------------------------------------
-
-// Borra todos los eventos programados en el Transport
 function clearScheduled() {
-  scheduledIds.forEach((id) => Tone.Transport.clear(id));
+  scheduledIds.forEach((id) => Transport.clear(id));
   scheduledIds = [];
 }
 
-// Suma beats totales de la progresión
 function totalBeats(blocks: ChordBlock[]) {
   return blocks.reduce((acc, b) => acc + b.durationBeats, 0);
 }
@@ -81,26 +78,20 @@ function totalBeats(blocks: ChordBlock[]) {
 // --------------------------------------------------
 // ▶️ API pública
 // --------------------------------------------------
-
-// Inicia el audio context y arranca el transporte con pequeña rampa
 export async function play() {
   await Tone.start();
-  Tone.Transport.start("+0.02"); // rampa corta para evitar click inicial
+  Transport.start("+0.02"); // rampa corta evita click inicial
 }
 
-// Detiene el transporte y suelta notas pendientes
 export function stop() {
-  Tone.Transport.stop();
+  Transport.stop();
   synth.releaseAll();
 }
 
 /**
- * Programa la progresión actual en el Tone.Transport
- * - Ajusta BPM con rampa suave
- * - Calcula loop 4/4
- * - Agenda cada bloque en bars:beats:0
- * - Limita duraciones para no cruzar el loopEnd (evita “notas colgadas”)
- * - Hace un releaseAll milisegundos antes del loopEnd
+ * Programa la progresión en el Transport con loop 4/4.
+ * - Usa Ticks para timing preciso
+ * - Limita duración de cada acorde para no cruzar loopEnd
  */
 export function scheduleProgression(
   progression: ChordBlock[],
@@ -110,62 +101,57 @@ export function scheduleProgression(
   clearScheduled();
 
   // Suavizar cambios de tempo
-  Tone.Transport.bpm.rampTo(bpm, 0.05);
+  Transport.bpm.rampTo(bpm, 0.05);
 
-  // Loop según 4/4
+  // --- Loop 4/4 en Ticks
+  const ppq = Tone.Transport.PPQ; // ticks por negra
   const beats = Math.max(1, totalBeats(progression)); // evitar loop 0
-  const measures = beats / 4;
-  Tone.Transport.loop = true;
-  Tone.Transport.loopStart = "0:0:0";
-  Tone.Transport.loopEnd = `${measures}:0:0`;
+  const loopStartTicks = 0;
+  const loopEndTicks = beats * ppq; // 1 beat = PPQ ticks
 
-  // Para limitar colas que crucen el loop
-  const loopEndSec = Tone.Time(Tone.Transport.loopEnd).toSeconds();
+  Transport.loop = true;
+  Transport.loopStart = Tone.Ticks(loopStartTicks).toSeconds();
+  Transport.loopEnd = Tone.Ticks(loopEndTicks).toSeconds();
 
-  // Capturar tonalidad local para el callback
-  const localKey = key;
+  // --- Limpieza de seguridad al inicio de cada vuelta
+  // (schedule con posición "0:0:0" se repite en cada loop)
+  const releaseId = Tone.Transport.schedule(() => synth.releaseAll(), "0:0:0");
+  scheduledIds.push(releaseId);
 
-  // Programar acordes bloque por bloque
-  let cursorBeats = 0;
+  // --- Programar acordes bloque por bloque (Ticks)
+  const safetyTicks = Math.max(1, Math.floor(ppq * 0.02)); // ~20ms en ticks
+  let cursorTicks = 0;
+
   progression.forEach((b) => {
-    const bar = Math.floor(cursorBeats / 4);
-    const beat = cursorBeats % 4;
-    const when = `${bar}:${beat}:0`; // formato bars:beats:sixteenths
+    const startTicks = cursorTicks;
+    const durTicks = Math.max(1, Math.floor(b.durationBeats * ppq));
+
+    // duración efectiva < fin de bloque y < fin de loop (margen)
+    const maxEndTicks = loopEndTicks - safetyTicks;
+    const noteOffTicks = Math.min(startTicks + Math.floor(durTicks * 0.96), maxEndTicks);
+    const effDurTicks = Math.max(1, noteOffTicks - startTicks);
 
     const id = Tone.Transport.schedule((time) => {
       try {
-        const notes = chordNotesFromDegree(localKey, b.degree);
+        const notes = chordNotesFromDegree(key, b.degree);
 
-        // Duración proporcional a beats (1 beat ≈ 4n)
-        // Nota: usamos string expr para que Tone calcule el tiempo musical
-        const durBeatsSec = Tone.Time(`${b.durationBeats}*4n`).toSeconds();
-
-        // Limitar para no cruzar loopEnd (con pequeño margen de seguridad)
-        const whenSec = Tone.Time(when).toSeconds();
-        const maxDurSec = Math.max(0, loopEndSec - whenSec - 0.02);
-        const durSec = Math.min(durBeatsSec * 0.96, maxDurSec);
-
+        // Ejecutamos en 'time' (ya alineado a startTicks) y pasamos duración en segundos
+        const durSec = Tone.Ticks(effDurTicks).toSeconds();
         synth.triggerAttackRelease(notes, durSec, time);
       } catch (e) {
         console.warn("[schedule] chord error:", e);
       }
-    }, when);
+    }, Tone.Ticks(startTicks));
 
     scheduledIds.push(id);
-    cursorBeats += b.durationBeats;
+    cursorTicks += durTicks;
   });
-
-  // Limpieza justo antes del reinicio del loop (evita colas colgadas)
-  const cleanupId = Tone.Transport.schedule(() => {
-    synth.releaseAll();
-  }, loopEndSec - 0.01);
-  scheduledIds.push(cleanupId);
 }
 
 /**
- * ♻️ Reprograma casi inmediato (~30ms) para reflejar cambios en vivo
- * (reordenar bloques, cambiar BPM o Key) sin cortar el loop ni generar clicks.
- * Si el transporte está detenido, simplemente programa y listo.
+ * Reprograma al PRÓXIMO DOWNBEAT (inicio de compás siguiente).
+ * - Si el transporte está parado, programa directo.
+ * - Si está corriendo, agenda en Ticks para evitar pérdidas de pulsos.
  */
 export function rescheduleAtNextDownbeat(
   progression: ChordBlock[],
@@ -174,22 +160,27 @@ export function rescheduleAtNextDownbeat(
 ) {
   const running = Tone.Transport.state === "started";
 
-  // Si no está corriendo, programar directo (se aplicará en próximo play)
   if (!running) {
     scheduleProgression(progression, bpm, key);
     return;
   }
 
-  // Cancelar un reschedule pendiente para evitar duplicados
+  // Cancelar reschedule previo
   if (pendingReschedule !== null) {
     Tone.Transport.clear(pendingReschedule);
     pendingReschedule = null;
   }
 
-  // Agenda un reschedule muy cercano para que el cambio se escuche “al toque”
+  const ppq = Tone.Transport.PPQ;
+  const ticksPerMeasure = ppq * 4; // 4/4
+  const nowTicks = Tone.Transport.ticks;
+
+  // Próximo múltiplo de compás completo
+  const nextDownbeatTicks =
+    Math.ceil(nowTicks / ticksPerMeasure) * ticksPerMeasure;
+
   pendingReschedule = Tone.Transport.scheduleOnce(() => {
-    clearScheduled();
     scheduleProgression(progression, bpm, key);
     pendingReschedule = null;
-  }, "+0.03"); // ~30 ms
+  }, Tone.Ticks(nextDownbeatTicks));
 }

@@ -6,6 +6,20 @@
 // progresión armónica y funciones auxiliares para
 // validar la métrica (4/4).
 // --------------------------------------------------
+// types.ts
+
+
+export type LibraryItem = {
+  id: string;
+  title: string;
+  key: string;            // o tu union "C" | "G" | ...
+  bpm: number;
+  style: string;          // "Pop" | "Neo" | ...
+  blocks: ChordBlock[];   // ojo: acá es 'blocks' (no 'progression')
+  createdAt: number;      // Date.now()
+  updatedAt: number;
+  version: string;        // ej. "1.0.0"
+};
 
 // 🎶 Representa los grados tonales clásicos (escala mayor)
 export type RomanDegree = "I" | "ii" | "iii" | "IV" | "V" | "vi" | "vii°";

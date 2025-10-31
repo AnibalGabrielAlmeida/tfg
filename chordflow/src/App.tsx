@@ -21,7 +21,7 @@ import { saveNewPreset } from "./modules/storage/library";
 import { barsUsage, exceedsAnyBar } from "./modules/progression/types";
 import { arrayMove } from "@dnd-kit/sortable";
 import { getBarWarnings } from "./modules/progression/metrics";
-
+import SaveBar from "./components/SaveBar";
 // Tonalidades / estilos
 const KEYS = ["C", "G", "D", "F"] as const;
   const STYLES = ["Pop", "Neo"] as const;
@@ -137,6 +137,15 @@ function App() {
       play().then(() => setIsPlaying(true));
     }
   }
+
+  function loadPreset(kind: "Pop" | "Neo") {
+    const preset = kind === "Pop" ? getPopPreset() : getNeoPreset();
+    setBpm(preset.bpm);
+    setKey(preset.key as (typeof KEYS)[number]);
+    setStyle(preset.style as (typeof STYLES)[number]);
+    setProgression(preset.progression);
+  }
+
 
   function handleLoadPop() {
     loadPresetAndMaybePlay(getPopPreset());
@@ -256,58 +265,17 @@ function App() {
       onSuggest={suggestAndInsertNext}
     />
 
-    {/* Guardar / Biblioteca */}
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Título…"
-        aria-label="Título de la progresión"
-        onFocus={onFocusRing}
-        onBlur={onBlurRing}
-        style={{
-          padding: "6px 8px",
-          borderRadius: 6,
-          border: "1px solid #444",
-          background: "#0b0b0b",
-          color: "#fff",
-        }}
-      />
-      <button
-        onClick={handleSavePreset}
-        aria-label="Guardar preset"
-        onFocus={onFocusRing}
-        onBlur={onBlurRing}
-        style={{
-          border: "1px solid #4d6",
-          background: "#0a2",
-          color: "#fff",
-          borderRadius: 6,
-          padding: "8px 12px",
-        }}
-      >
-        Guardar
-      </button>
-      <button
-        onClick={() => setLibraryOpen(true)}
-        aria-label="Abrir biblioteca"
-        onFocus={onFocusRing}
-        onBlur={onBlurRing}
-        style={{
-          border: "1px solid #556",
-          background: "#223",
-          color: "#fff",
-          borderRadius: 6,
-          padding: "8px 12px",
-        }}
-      >
-        Biblioteca
-      </button>
-    </div>
+    {/* Guardar / Biblioteca (refactor a componente) */}
+    <SaveBar
+      title={title}
+      onChangeTitle={setTitle}
+      onSave={handleSavePreset}
+      onOpenLibrary={() => setLibraryOpen(true)}
+    />
 
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
       <button
-        onClick={handleLoadPop}
+        onClick={() => loadPreset("Pop")}
         aria-label="Cargar preset Pop"
         onFocus={onFocusRing}
         onBlur={onBlurRing}
@@ -322,7 +290,7 @@ function App() {
         Cargar preset Pop
       </button>
       <button
-        onClick={handleLoadNeo}
+        onClick={() => loadPreset("Neo")}
         aria-label="Cargar preset Neo"
         onFocus={onFocusRing}
         onBlur={onBlurRing}
@@ -369,7 +337,7 @@ function App() {
       onChangeDuration={updateBlockDuration}
       onDuplicate={duplicateBlock}
       onDelete={deleteBlock}
-    />  
+    />
 
     {/* Leyenda con tooltips T/S/D */}
     <section style={{ marginTop: 16, fontSize: 12, color: "#ccc" }}>
@@ -395,6 +363,7 @@ function App() {
     />
   </main>
 );
+
 
 }
 
