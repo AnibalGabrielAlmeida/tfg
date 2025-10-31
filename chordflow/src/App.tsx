@@ -20,6 +20,7 @@ import LibraryPanel from "./components/LibraryPanel";
 import { saveNewPreset } from "./modules/storage/library";
 import { barsUsage, exceedsAnyBar } from "./modules/progression/types";
 import { arrayMove } from "@dnd-kit/sortable";
+import { getBarWarnings } from "./modules/progression/metrics";
 
 // Tonalidades / estilos
 const KEYS = ["C", "G", "D", "F"] as const;
@@ -48,10 +49,10 @@ function App() {
 
   const onFocusRing = (e: React.FocusEvent<HTMLButtonElement | HTMLInputElement>) => {
   e.currentTarget.style.boxShadow = "0 0 0 2px #6cf";
-};
-const onBlurRing = (e: React.FocusEvent<HTMLButtonElement | HTMLInputElement>) => {
-  e.currentTarget.style.boxShadow = "none";
-};
+  };
+  const onBlurRing = (e: React.FocusEvent<HTMLButtonElement | HTMLInputElement>) => {
+    e.currentTarget.style.boxShadow = "none";
+  };
 
   // --- CRUD ---
   // ✅ Validación 4/4: bloquea cambios de duración que rompen el compás
@@ -86,7 +87,6 @@ const onBlurRing = (e: React.FocusEvent<HTMLButtonElement | HTMLInputElement>) =
   });
 }
 
-
   function duplicateBlock(id: string) {
     const original = progression.find((b) => b.id === id);
     if (!original) return;
@@ -105,14 +105,14 @@ const onBlurRing = (e: React.FocusEvent<HTMLButtonElement | HTMLInputElement>) =
     setProgression((prev) => prev.filter((b) => b.id !== id));
   }
 
- const handleReorder = (activeId: string, overId: string) => {
-  setProgression((prev) => {
-    const oldIndex = prev.findIndex((b) => b.id === activeId);
-    const newIndex = prev.findIndex((b) => b.id === overId);
-    const next = arrayMove(prev, oldIndex, newIndex);
-    return exceedsAnyBar(next) ? prev : next; // validación 4/4
-  });
-};
+  const handleReorder = (activeId: string, overId: string) => {
+    setProgression((prev) => {
+      const oldIndex = prev.findIndex((b) => b.id === activeId);
+      const newIndex = prev.findIndex((b) => b.id === overId);
+      const next = arrayMove(prev, oldIndex, newIndex);
+      return exceedsAnyBar(next) ? prev : next; // validación 4/4
+    });
+  };
 
 
   function loadPresetAndMaybePlay(p: ReturnType<typeof getPopPreset>) {
@@ -147,18 +147,6 @@ const onBlurRing = (e: React.FocusEvent<HTMLButtonElement | HTMLInputElement>) =
   }
 
   // --- Warning métrico (4/4) ---
-  function getBarWarnings(blocks: ChordBlock[]) {
-    let beatCursor = 0;
-    const barUsage: Record<number, number> = {};
-    for (const b of blocks) {
-      const bar = Math.floor(beatCursor / 4);
-      barUsage[bar] = (barUsage[bar] || 0) + b.durationBeats;
-      beatCursor += b.durationBeats;
-    }
-    return Object.entries(barUsage)
-      .filter(([_, beats]) => beats > 4)
-      .map(([bar, beats]) => ({ bar: Number(bar) + 1, beats }));
-  }
   const barWarnings = getBarWarnings(progression);
 
   // --- Sugerencia automática por estilo (Pop/Neo) ---
@@ -376,12 +364,12 @@ const onBlurRing = (e: React.FocusEvent<HTMLButtonElement | HTMLInputElement>) =
 
     {/* Lista de bloques con DnD */}
     <ProgressionList
-  progression={progression}
-  onReorder={handleReorder}
-  onChangeDuration={updateBlockDuration}
-  onDuplicate={duplicateBlock}
-  onDelete={deleteBlock}
-/>  
+      progression={progression}
+      onReorder={handleReorder}
+      onChangeDuration={updateBlockDuration}
+      onDuplicate={duplicateBlock}
+      onDelete={deleteBlock}
+    />  
 
     {/* Leyenda con tooltips T/S/D */}
     <section style={{ marginTop: 16, fontSize: 12, color: "#ccc" }}>
