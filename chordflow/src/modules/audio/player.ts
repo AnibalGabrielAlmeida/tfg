@@ -1,16 +1,17 @@
 // --------------------------------------------------
 // 🔊 ChordFlow — Motor de audio (Tone.js)
 // --------------------------------------------------
-// - Usa Rhodes Sampler real desde fxChain.ts
-// - Humanización: micro-delay ±20 ms y velocity variable
+// - Rhodes Sampler real desde fxChain.ts
+// - Humanización: micro-delay y velocity
+// - Voicings: drop-2 + smooth voice leading entre acordes
 // - Loop 4/4 estable (Ticks, sin redondeos)
-// - ADSR suave y sin clicks
-// - Re-schedule al próximo downbeat (compás siguiente)
+// - Re-schedule al próximo downbeat
 // --------------------------------------------------
 
 import * as Tone from "tone";
 import type { ChordBlock } from "../progression/types";
 import { chordNotesFromDegree } from "../theory/roman";
+import { applyVoicing, smoothVoiceLeading } from "../theory/voicings";
 import { createEPInstrument } from "./fxChain";
 
 // --------------------------------------------------
@@ -19,7 +20,6 @@ import { createEPInstrument } from "./fxChain";
 const Transport = Tone.getTransport();
 let instrument: Tone.Sampler | null = null;
 
-// Carga el instrumento una sola vez
 async function ensureInstrument() {
   if (!instrument) {
     instrument = await createEPInstrument();
@@ -32,6 +32,8 @@ async function ensureInstrument() {
 // --------------------------------------------------
 let scheduledIds: number[] = [];
 let pendingReschedule: number | null = null;
+// último voicing ejecutado (para voice leading)
+let lastVoicing: string[] | null = null;
 
 // --------------------------------------------------
 // 🛠️ Utilidades
@@ -45,9 +47,8 @@ function totalBeats(blocks: ChordBlock[]) {
   return blocks.reduce((acc, b) => acc + b.durationBeats, 0);
 }
 
-// Humanización: micro-delay y velocity
 function humanizeTime(baseTime: number): number {
-  const jitter = (Math.random() * 0.04) - 0.02; // ±20 ms
+  const jitter = Math.random() * 0.04 - 0.02; // ±20 ms
   return baseTime + jitter;
 }
 
@@ -72,7 +73,8 @@ export function stop() {
 /**
  * Programa la progresión en el Transport con loop 4/4.
  * - Timing preciso con Ticks
- * - Humanización ligera por acorde
+ * - Humanización ligera
+ * - Voicings suaves entre acordes
  */
 export async function scheduleProgression(
   progression: ChordBlock[],
@@ -81,6 +83,7 @@ export async function scheduleProgression(
 ) {
   const synth = await ensureInstrument();
   clearScheduled();
+  lastVoicing = null; // resetear voicing al reprogramar
 
   Transport.bpm.rampTo(bpm, 0.05);
 
@@ -93,7 +96,6 @@ export async function scheduleProgression(
   Transport.loopStart = Tone.Ticks(loopStartTicks).toSeconds();
   Transport.loopEnd = Tone.Ticks(loopEndTicks).toSeconds();
 
-  // Limpieza al inicio de cada vuelta
   const releaseId = Transport.schedule(() => synth.releaseAll(), "0:0:0");
   scheduledIds.push(releaseId);
 
@@ -112,14 +114,22 @@ export async function scheduleProgression(
 
     const id = Transport.schedule((time) => {
       try {
-        const notes = chordNotesFromDegree(key, b.degree);
-        const durSec = Tone.Ticks(effDurTicks).toSeconds();
+        const rawNotes = chordNotesFromDegree(key, b.degree);
 
-        // 🎹 Aplicar humanización
+        // 🎹 Voicings: primer acorde usa drop2, los siguientes hacen voice leading
+        let voiced: string[];
+        if (lastVoicing) {
+          voiced = smoothVoiceLeading(lastVoicing, rawNotes);
+        } else {
+          voiced = applyVoicing(rawNotes, "drop2");
+        }
+
+        const durSec = Tone.Ticks(effDurTicks).toSeconds();
         const humanTime = humanizeTime(time);
         const velocity = humanizeVelocity();
 
-        synth.triggerAttackRelease(notes, durSec, humanTime, velocity);
+        synth.triggerAttackRelease(voiced, durSec, humanTime, velocity);
+        lastVoicing = voiced;
       } catch (e) {
         console.warn("[schedule] chord error:", e);
       }
@@ -146,7 +156,7 @@ export async function rescheduleAtNextDownbeat(
   }
 
   if (pendingReschedule !== null) {
-    Tone.Transport.clear(pendingReschedule);
+    Transport.clear(pendingReschedule);
     pendingReschedule = null;
   }
 
