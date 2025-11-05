@@ -1,22 +1,30 @@
 // --------------------------------------------------
 // 🔊 ChordFlow — Motor de audio (Tone.js)
 // --------------------------------------------------
-// - Usa instrumento Rhodes desde fxChain.ts
+// - Usa Rhodes Sampler real desde fxChain.ts
 // - Loop 4/4 estable (Ticks, sin redondeos)
-// - ADSR suave para evitar clicks
+// - ADSR suave y sin clicks
 // - Re-schedule al próximo downbeat (compás siguiente) en vivo
 // --------------------------------------------------
 
 import * as Tone from "tone";
 import type { ChordBlock } from "../progression/types";
 import { chordNotesFromDegree } from "../theory/roman";
-import { createEPInstrument } from "./fxChain"; // ✅ nuevo módulo
+import { createEPInstrument } from "./fxChain";
 
 // --------------------------------------------------
 // 🎛️ Inicialización
 // --------------------------------------------------
 const Transport = Tone.getTransport();
-const synth = createEPInstrument(); // el instrumento ya incluye FX
+let instrument: Tone.Sampler | null = null;
+
+// Se asegura de cargar el sampler solo una vez
+async function ensureInstrument() {
+  if (!instrument) {
+    instrument = await createEPInstrument();
+  }
+  return instrument;
+}
 
 // --------------------------------------------------
 // 🧠 Estado interno
@@ -41,12 +49,13 @@ function totalBeats(blocks: ChordBlock[]) {
 // --------------------------------------------------
 export async function play() {
   await Tone.start();
+  await ensureInstrument(); // asegura que el sampler esté listo
   Transport.start("+0.02"); // rampa corta evita click inicial
 }
 
 export function stop() {
   Transport.stop();
-  synth.releaseAll();
+  instrument?.releaseAll();
 }
 
 /**
@@ -54,11 +63,12 @@ export function stop() {
  * - Usa Ticks para timing preciso
  * - Limita duración de cada acorde para no cruzar loopEnd
  */
-export function scheduleProgression(
+export async function scheduleProgression(
   progression: ChordBlock[],
   bpm: number,
   key: string
 ) {
+  const synth = await ensureInstrument();
   clearScheduled();
 
   // Suavizar cambios de tempo
@@ -113,7 +123,7 @@ export function scheduleProgression(
  * - Si el transporte está parado, programa directo.
  * - Si está corriendo, agenda en Ticks para evitar pérdidas de pulsos.
  */
-export function rescheduleAtNextDownbeat(
+export async function rescheduleAtNextDownbeat(
   progression: ChordBlock[],
   bpm: number,
   key: string
@@ -121,7 +131,7 @@ export function rescheduleAtNextDownbeat(
   const running = Tone.Transport.state === "started";
 
   if (!running) {
-    scheduleProgression(progression, bpm, key);
+    await scheduleProgression(progression, bpm, key);
     return;
   }
 
@@ -137,8 +147,8 @@ export function rescheduleAtNextDownbeat(
   const nextDownbeatTicks =
     Math.ceil(nowTicks / ticksPerMeasure) * ticksPerMeasure;
 
-  pendingReschedule = Tone.Transport.scheduleOnce(() => {
-    scheduleProgression(progression, bpm, key);
+  pendingReschedule = Tone.Transport.scheduleOnce(async () => {
+    await scheduleProgression(progression, bpm, key);
     pendingReschedule = null;
   }, Tone.Ticks(nextDownbeatTicks));
 }

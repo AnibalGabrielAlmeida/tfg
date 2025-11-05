@@ -1,54 +1,40 @@
 // --------------------------------------------------
-// 🎛 ChordFlow — Instrumento + cadena de FX (EP/Rhodes)
+// 🎛 ChordFlow — Instrumento + cadena de FX (Rhodes Sampler)
 // --------------------------------------------------
 
 import * as Tone from "tone";
+import { createRhodesSampler } from "./sampler";
 
-export function createEPInstrument() {
-  // synth → volume → tremolo → chorus → reverb → comp → limiter → out
+export async function createEPInstrument(): Promise<Tone.Sampler> {
+  // 🔹 Carga el sampler de Rhodes
+  const sampler = await createRhodesSampler();
 
+  // 🔹 FX básicos: EQ, comp, chorus, tremolo, reverb corta
   const limiter = new Tone.Limiter(-3).toDestination();
   const compressor = new Tone.Compressor({
-    threshold: -16,
-    ratio: 3,
+    threshold: -18,
+    ratio: 2.5,
     attack: 0.01,
     release: 0.2,
   });
-  const reverb = new Tone.Reverb({ decay: 2.2, wet: 0.12 });
+  const eq = new Tone.EQ3(-1, 0, -2); // recorte sutil de graves/agudos
+  const reverb = new Tone.Reverb({ decay: 1.8, wet: 0.15 });
   const chorus = new Tone.Chorus({
-    frequency: 0.8,
-    depth: 0.5,
+    frequency: 1.5,
+    depth: 0.3,
     delayTime: 2.5,
-    wet: 0.18,
+    wet: 0.15,
   }).start();
   const tremolo = new Tone.Tremolo({
-    frequency: 4,
-    depth: 0.22,
+    frequency: 5, // 4–6 Hz
+    depth: 0.25,
     spread: 180,
     wet: 0.12,
   }).start();
-  const volume = new Tone.Volume(-12);
+  const volume = new Tone.Volume(-10);
 
-  // cadena de FX
-  reverb.connect(compressor);
-  compressor.connect(limiter);
-  chorus.connect(reverb);
-  tremolo.connect(chorus);
-  volume.connect(tremolo);
+  // 🔗 Cadena de efectos: sampler → volume → tremolo → chorus → eq → reverb → comp → limiter → out
+  sampler.chain(volume, tremolo, chorus, eq, reverb, compressor, limiter);
 
-  // EP simple con ADSR “amable”
-  const synth = new Tone.PolySynth(Tone.Synth, {
-    oscillator: { type: "sine" },
-    envelope: { attack: 0.012, decay: 0.18, sustain: 0.55, release: 0.7 },
-  }).connect(volume);
-
-  // Límite de polifonía
-  (synth as any).maxPolyphony = 8;
-
-  // Atenuación extra del instrumento (por si el preset suma ganancia)
-  if ((synth as any).volume?.value !== undefined) {
-    (synth as any).volume.value = -4;
-  }
-
-  return synth;
+  return sampler;
 }
