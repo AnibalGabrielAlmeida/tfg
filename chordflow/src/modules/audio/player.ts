@@ -1,61 +1,22 @@
 // --------------------------------------------------
 // 🔊 ChordFlow — Motor de audio (Tone.js)
 // --------------------------------------------------
-// - EP/Rhodes simple con cadena FX
-// - Programación de acordes en loop 4/4 (Ticks, sin redondeos)
-// - ADSR suave para evitar clicks (duración acotada < loopEnd)
+// - Usa instrumento Rhodes desde fxChain.ts
+// - Loop 4/4 estable (Ticks, sin redondeos)
+// - ADSR suave para evitar clicks
 // - Re-schedule al próximo downbeat (compás siguiente) en vivo
 // --------------------------------------------------
 
 import * as Tone from "tone";
 import type { ChordBlock } from "../progression/types";
 import { chordNotesFromDegree } from "../theory/roman";
+import { createEPInstrument } from "./fxChain"; // ✅ nuevo módulo
 
 // --------------------------------------------------
-// 🎛️ Nodos de audio
-// synth → volume → tremolo → chorus → reverb → comp → limiter → out
+// 🎛️ Inicialización
 // --------------------------------------------------
 const Transport = Tone.getTransport();
-const limiter = new Tone.Limiter(-3).toDestination();
-const compressor = new Tone.Compressor({
-  threshold: -16,
-  ratio: 3,
-  attack: 0.01,
-  release: 0.2,
-});
-const reverb = new Tone.Reverb({ decay: 2.2, wet: 0.12 });
-const chorus = new Tone.Chorus({
-  frequency: 0.8,
-  depth: 0.5,
-  delayTime: 2.5,
-  wet: 0.18,
-}).start();
-const tremolo = new Tone.Tremolo({
-  frequency: 4,
-  depth: 0.22,
-  spread: 180,
-  wet: 0.12,
-}).start();
-const volume = new Tone.Volume(-12);
-
-reverb.connect(compressor);
-compressor.connect(limiter);
-chorus.connect(reverb);
-tremolo.connect(chorus);
-volume.connect(tremolo);
-
-// EP simple con ADSR “amable”
-const synth = new Tone.PolySynth(Tone.Synth, {
-  oscillator: { type: "sine" },
-  envelope: { attack: 0.012, decay: 0.18, sustain: 0.55, release: 0.7 },
-}).connect(volume);
-
-// Límite de polifonía (runtime)
-(synth as any).maxPolyphony = 8;
-// Atenuación extra del instrumento
-if ((synth as any).volume?.value !== undefined) {
-  (synth as any).volume.value = -4;
-}
+const synth = createEPInstrument(); // el instrumento ya incluye FX
 
 // --------------------------------------------------
 // 🧠 Estado interno
@@ -104,38 +65,37 @@ export function scheduleProgression(
   Transport.bpm.rampTo(bpm, 0.05);
 
   // --- Loop 4/4 en Ticks
-  const ppq = Tone.Transport.PPQ; // ticks por negra
-  const beats = Math.max(1, totalBeats(progression)); // evitar loop 0
+  const ppq = Tone.Transport.PPQ;
+  const beats = Math.max(1, totalBeats(progression));
   const loopStartTicks = 0;
-  const loopEndTicks = beats * ppq; // 1 beat = PPQ ticks
+  const loopEndTicks = beats * ppq;
 
   Transport.loop = true;
   Transport.loopStart = Tone.Ticks(loopStartTicks).toSeconds();
   Transport.loopEnd = Tone.Ticks(loopEndTicks).toSeconds();
 
-  // --- Limpieza de seguridad al inicio de cada vuelta
-  // (schedule con posición "0:0:0" se repite en cada loop)
+  // --- Limpieza al inicio de cada vuelta
   const releaseId = Tone.Transport.schedule(() => synth.releaseAll(), "0:0:0");
   scheduledIds.push(releaseId);
 
-  // --- Programar acordes bloque por bloque (Ticks)
-  const safetyTicks = Math.max(1, Math.floor(ppq * 0.02)); // ~20ms en ticks
+  // --- Programar acordes
+  const safetyTicks = Math.max(1, Math.floor(ppq * 0.02)); // ~20ms
   let cursorTicks = 0;
 
   progression.forEach((b) => {
     const startTicks = cursorTicks;
     const durTicks = Math.max(1, Math.floor(b.durationBeats * ppq));
 
-    // duración efectiva < fin de bloque y < fin de loop (margen)
     const maxEndTicks = loopEndTicks - safetyTicks;
-    const noteOffTicks = Math.min(startTicks + Math.floor(durTicks * 0.96), maxEndTicks);
+    const noteOffTicks = Math.min(
+      startTicks + Math.floor(durTicks * 0.96),
+      maxEndTicks
+    );
     const effDurTicks = Math.max(1, noteOffTicks - startTicks);
 
-    const id = Tone.Transport.schedule((time) => {
+    const id = Transport.schedule((time) => {
       try {
         const notes = chordNotesFromDegree(key, b.degree);
-
-        // Ejecutamos en 'time' (ya alineado a startTicks) y pasamos duración en segundos
         const durSec = Tone.Ticks(effDurTicks).toSeconds();
         synth.triggerAttackRelease(notes, durSec, time);
       } catch (e) {
@@ -165,17 +125,15 @@ export function rescheduleAtNextDownbeat(
     return;
   }
 
-  // Cancelar reschedule previo
   if (pendingReschedule !== null) {
     Tone.Transport.clear(pendingReschedule);
     pendingReschedule = null;
   }
 
   const ppq = Tone.Transport.PPQ;
-  const ticksPerMeasure = ppq * 4; // 4/4
+  const ticksPerMeasure = ppq * 4;
   const nowTicks = Tone.Transport.ticks;
 
-  // Próximo múltiplo de compás completo
   const nextDownbeatTicks =
     Math.ceil(nowTicks / ticksPerMeasure) * ticksPerMeasure;
 
