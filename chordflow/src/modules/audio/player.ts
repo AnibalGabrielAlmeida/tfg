@@ -2,9 +2,10 @@
 // 🔊 ChordFlow — Motor de audio (Tone.js)
 // --------------------------------------------------
 // - Usa Rhodes Sampler real desde fxChain.ts
+// - Humanización: micro-delay ±20 ms y velocity variable
 // - Loop 4/4 estable (Ticks, sin redondeos)
 // - ADSR suave y sin clicks
-// - Re-schedule al próximo downbeat (compás siguiente) en vivo
+// - Re-schedule al próximo downbeat (compás siguiente)
 // --------------------------------------------------
 
 import * as Tone from "tone";
@@ -18,7 +19,7 @@ import { createEPInstrument } from "./fxChain";
 const Transport = Tone.getTransport();
 let instrument: Tone.Sampler | null = null;
 
-// Se asegura de cargar el sampler solo una vez
+// Carga el instrumento una sola vez
 async function ensureInstrument() {
   if (!instrument) {
     instrument = await createEPInstrument();
@@ -44,13 +45,23 @@ function totalBeats(blocks: ChordBlock[]) {
   return blocks.reduce((acc, b) => acc + b.durationBeats, 0);
 }
 
+// Humanización: micro-delay y velocity
+function humanizeTime(baseTime: number): number {
+  const jitter = (Math.random() * 0.04) - 0.02; // ±20 ms
+  return baseTime + jitter;
+}
+
+function humanizeVelocity(): number {
+  return 0.65 + Math.random() * 0.35; // 0.65–1.0
+}
+
 // --------------------------------------------------
 // ▶️ API pública
 // --------------------------------------------------
 export async function play() {
   await Tone.start();
-  await ensureInstrument(); // asegura que el sampler esté listo
-  Transport.start("+0.02"); // rampa corta evita click inicial
+  await ensureInstrument();
+  Transport.start("+0.02");
 }
 
 export function stop() {
@@ -60,8 +71,8 @@ export function stop() {
 
 /**
  * Programa la progresión en el Transport con loop 4/4.
- * - Usa Ticks para timing preciso
- * - Limita duración de cada acorde para no cruzar loopEnd
+ * - Timing preciso con Ticks
+ * - Humanización ligera por acorde
  */
 export async function scheduleProgression(
   progression: ChordBlock[],
@@ -71,10 +82,8 @@ export async function scheduleProgression(
   const synth = await ensureInstrument();
   clearScheduled();
 
-  // Suavizar cambios de tempo
   Transport.bpm.rampTo(bpm, 0.05);
 
-  // --- Loop 4/4 en Ticks
   const ppq = Tone.Transport.PPQ;
   const beats = Math.max(1, totalBeats(progression));
   const loopStartTicks = 0;
@@ -84,18 +93,16 @@ export async function scheduleProgression(
   Transport.loopStart = Tone.Ticks(loopStartTicks).toSeconds();
   Transport.loopEnd = Tone.Ticks(loopEndTicks).toSeconds();
 
-  // --- Limpieza al inicio de cada vuelta
-  const releaseId = Tone.Transport.schedule(() => synth.releaseAll(), "0:0:0");
+  // Limpieza al inicio de cada vuelta
+  const releaseId = Transport.schedule(() => synth.releaseAll(), "0:0:0");
   scheduledIds.push(releaseId);
 
-  // --- Programar acordes
-  const safetyTicks = Math.max(1, Math.floor(ppq * 0.02)); // ~20ms
+  const safetyTicks = Math.max(1, Math.floor(ppq * 0.02));
   let cursorTicks = 0;
 
   progression.forEach((b) => {
     const startTicks = cursorTicks;
     const durTicks = Math.max(1, Math.floor(b.durationBeats * ppq));
-
     const maxEndTicks = loopEndTicks - safetyTicks;
     const noteOffTicks = Math.min(
       startTicks + Math.floor(durTicks * 0.96),
@@ -107,7 +114,12 @@ export async function scheduleProgression(
       try {
         const notes = chordNotesFromDegree(key, b.degree);
         const durSec = Tone.Ticks(effDurTicks).toSeconds();
-        synth.triggerAttackRelease(notes, durSec, time);
+
+        // 🎹 Aplicar humanización
+        const humanTime = humanizeTime(time);
+        const velocity = humanizeVelocity();
+
+        synth.triggerAttackRelease(notes, durSec, humanTime, velocity);
       } catch (e) {
         console.warn("[schedule] chord error:", e);
       }
@@ -119,9 +131,7 @@ export async function scheduleProgression(
 }
 
 /**
- * Reprograma al PRÓXIMO DOWNBEAT (inicio de compás siguiente).
- * - Si el transporte está parado, programa directo.
- * - Si está corriendo, agenda en Ticks para evitar pérdidas de pulsos.
+ * Reprograma al PRÓXIMO DOWNBEAT (inicio de compás siguiente)
  */
 export async function rescheduleAtNextDownbeat(
   progression: ChordBlock[],
@@ -143,11 +153,10 @@ export async function rescheduleAtNextDownbeat(
   const ppq = Tone.Transport.PPQ;
   const ticksPerMeasure = ppq * 4;
   const nowTicks = Tone.Transport.ticks;
-
   const nextDownbeatTicks =
     Math.ceil(nowTicks / ticksPerMeasure) * ticksPerMeasure;
 
-  pendingReschedule = Tone.Transport.scheduleOnce(async () => {
+  pendingReschedule = Transport.scheduleOnce(async () => {
     await scheduleProgression(progression, bpm, key);
     pendingReschedule = null;
   }, Tone.Ticks(nextDownbeatTicks));
