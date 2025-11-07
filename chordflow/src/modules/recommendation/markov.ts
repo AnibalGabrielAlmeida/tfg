@@ -160,3 +160,42 @@ export function suggestNextDegreePop(current: string): string {
   lastSuggested = next;
   return next;
 }
+
+// --------------------------------------------------
+// 🔀 PRO: mezcla de estilos (α·Pop + (1–α)·Neo)
+// --------------------------------------------------
+
+/**
+ * Devuelve una fila Markov mezclada entre Pop y Neo.
+ * alpha = 1   → solo Pop
+ * alpha = 0   → solo Neo
+ * alpha = 0.5 → mezcla 50/50
+ */
+export function getBlendedMarkovRow(
+  style: Style,
+  current: string,
+  alpha: number = 1
+): Record<string, number> {
+  // Si el usuario elige Pop o Neo "puro", usamos solo esa matriz
+  if (style === "Pop" && alpha >= 0.999) {
+    return MARKOV_POP[current] ?? {};
+  }
+  if (style === "Neo" && alpha <= 0.001) {
+    return MARKOV_NEO[current] ?? {};
+  }
+
+  // Mezcla Pop/Neo (por si más adelante queremos "híbridos")
+  const popRow = MARKOV_POP[current] ?? {};
+  const neoRow = MARKOV_NEO[current] ?? {};
+
+  const result: Record<string, number> = {};
+  const degrees = new Set([...Object.keys(popRow), ...Object.keys(neoRow)]);
+
+  degrees.forEach((deg) => {
+    const pPop = popRow[deg] ?? 0;
+    const pNeo = neoRow[deg] ?? 0;
+    result[deg] = pPop * alpha + pNeo * (1 - alpha);
+  });
+
+  return result;
+}
