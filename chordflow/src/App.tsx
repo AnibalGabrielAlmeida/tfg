@@ -8,6 +8,7 @@
 // - 🔁 Auto re-schedule del transporte al cambiar orden/BPM/Key si está sonando
 // --------------------------------------
 import React, { useState, useRef, useEffect } from "react";
+import { exportLibraryToJSON, importLibraryFromJSON } from "./modules/storage/exporter";
 import { play, stop, scheduleProgression, rescheduleAtNextDownbeat } from "./modules/audio/player";
 import type { ChordBlock } from "./modules/progression/types";
 import ProgressionList from "./components/ProgressionList";
@@ -36,6 +37,7 @@ function App() {
   const [key, setKey] = useState<(typeof KEYS)[number]>("C");
   const [bpm, setBpm] = useState(100);
   const [style, setStyle] = useState<(typeof STYLES)[number]>("Pop");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Estado de reproducción (para auto re-schedule)
   const [isPlaying, setIsPlaying] = useState(false);
@@ -253,6 +255,39 @@ function App() {
   return () => window.removeEventListener("keydown", onKey);
 }, [isPlaying]); // deps mínimas
 
+
+
+function handleExportJSON() {
+  const json = exportLibraryToJSON();
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "chordflow-library.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function handleImportClick() {
+  fileInputRef.current?.click();
+}
+
+function handleImportFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const text = String(ev.target?.result || "");
+    const result = importLibraryFromJSON(text, "merge");
+    console.log(`[import] presets importados: ${result.imported}`);
+  };
+  reader.readAsText(file);
+
+  // resetear input para permitir re-importar el mismo archivo si hace falta
+  e.target.value = "";
+}
+
   // -----------------
   // Render principal
   // -----------------
@@ -291,6 +326,52 @@ function App() {
       onSave={handleSavePreset}
       onOpenLibrary={() => setLibraryOpen(true)}
     />
+
+
+    <SaveBar
+  title={title}
+  onChangeTitle={setTitle}
+  onSave={handleSavePreset}
+  onOpenLibrary={() => setLibraryOpen(true)}
+/>
+
+<div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+  <button
+    onClick={handleExportJSON}
+    style={{
+      border: "1px solid #4b5563",
+      background: "#111827",
+      color: "#e5e7eb",
+      borderRadius: 6,
+      padding: "6px 10px",
+      fontSize: 12,
+      cursor: "pointer",
+    }}
+  >
+    Exportar biblioteca (JSON)
+  </button>
+  <button
+    onClick={handleImportClick}
+    style={{
+      border: "1px solid #4b5563",
+      background: "#111827",
+      color: "#e5e7eb",
+      borderRadius: 6,
+      padding: "6px 10px",
+      fontSize: 12,
+      cursor: "pointer",
+    }}
+  >
+    Importar biblioteca (JSON)
+  </button>
+  <input
+    type="file"
+    accept="application/json"
+    ref={fileInputRef}
+    style={{ display: "none" }}
+    onChange={handleImportFileChange}
+  />
+</div>
 
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
       <button

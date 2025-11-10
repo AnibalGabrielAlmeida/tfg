@@ -2,6 +2,7 @@
 // 💾 ChordFlow — Persistencia mínima (localStorage)
 // --------------------------------------------------
 import type { ChordBlock } from "../progression/types";
+import { migrateStore, CURRENT_VERSION } from "./migrator";
 
 const LS_KEY = "chordflow.presets.v1";
 
@@ -24,11 +25,14 @@ type Store = Record<string, Preset>;
 function readStore(): Store {
   try {
     const raw = localStorage.getItem(LS_KEY);
-    return raw ? (JSON.parse(raw) as Store) : {};
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return migrateStore(parsed);
   } catch {
     return {};
   }
 }
+
 function writeStore(store: Store) {
   localStorage.setItem(LS_KEY, JSON.stringify(store));
 }
@@ -54,7 +58,7 @@ export function saveNewPreset(
     id: uid(),
     createdAt: now,
     updatedAt: now,
-    version: data.version ?? "1.0.0",
+    version: data.version ?? CURRENT_VERSION,
     ...data,
   };
   store[preset.id] = preset;
@@ -86,7 +90,7 @@ export function duplicatePreset(id: string): Preset | null {
     key: base.key,
     style: base.style,
     progression: JSON.parse(JSON.stringify(base.progression)),
-    version: base.version ?? "1.0.0",
+    version: base.version ?? CURRENT_VERSION,
   });
 }
 
@@ -94,7 +98,7 @@ export function duplicatePreset(id: string): Preset | null {
 function toTFGShape(p: Preset) {
   return {
     ...p,
-    version: p.version ?? "1.0.0",
+    version: p.version ?? CURRENT_VERSION,
     blocks: p.progression, // TFG pide 'blocks'
   };
 }
@@ -105,7 +109,7 @@ function fromTFGShape(p: any): Omit<Preset, "id" | "createdAt" | "updatedAt"> & 
     key: p.key,
     style: p.style,
     progression: p.blocks ?? p.progression,
-    version: p.version ?? "1.0.0",
+    version: p.version ?? CURRENT_VERSION,
     // id opcional para update
     ...(p.id ? { id: p.id } : {}),
   } as any;
