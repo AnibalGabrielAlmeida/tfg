@@ -7,8 +7,7 @@
 // - Leyenda T/S/D con tooltips breves
 // - 🔁 Auto re-schedule del transporte al cambiar orden/BPM/Key si está sonando
 // --------------------------------------
-
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { play, stop, scheduleProgression, rescheduleAtNextDownbeat } from "./modules/audio/player";
 import type { ChordBlock } from "./modules/progression/types";
 import ProgressionList from "./components/ProgressionList";
@@ -22,6 +21,9 @@ import { barsUsage, exceedsAnyBar } from "./modules/progression/types";
 import { arrayMove } from "@dnd-kit/sortable";
 import { getBarWarnings } from "./modules/progression/metrics";
 import SaveBar from "./components/SaveBar";
+import SuggestionStrip from "./components/SuggestionStrip";
+import type { Style } from "./modules/recommendation/markov";
+
 // Tonalidades / estilos
 const KEYS = ["C", "G", "D", "F"] as const;
   const STYLES = ["Pop", "Neo"] as const;
@@ -157,6 +159,23 @@ function App() {
 
   // --- Warning métrico (4/4) ---
   const barWarnings = getBarWarnings(progression);
+
+  const lastBlock = progression[progression.length - 1];
+  const suggestionBaseDegree = lastBlock?.degree ?? "I";
+
+  function applySuggestion(degree: string) {
+    setProgression((prev) => {
+      const newBlock: ChordBlock = {
+        id: `b${nextIdRef.current++}`,
+        degree: degree as ChordBlock["degree"],
+        durationBeats: 4,
+      };
+
+    const candidate: ChordBlock[] = [...prev, newBlock];
+    return exceedsAnyBar(candidate) ? prev : candidate;
+  });
+}
+
 
   // --- Sugerencia automática por estilo (Pop/Neo) ---
   function suggestAndInsertNext() {
@@ -338,6 +357,14 @@ function App() {
       onDuplicate={duplicateBlock}
       onDelete={deleteBlock}
     />
+
+
+    <SuggestionStrip
+  style={style as Style}
+  keyName={key}
+  currentDegree={suggestionBaseDegree}
+  onApplySuggestion={applySuggestion}
+/>
 
     {/* Leyenda con tooltips T/S/D */}
     <section style={{ marginTop: 16, fontSize: 12, color: "#ccc" }}>
