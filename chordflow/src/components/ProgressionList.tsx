@@ -35,16 +35,7 @@ export default function ProgressionList({
         items={progression.map((b) => b.id)}
         strategy={verticalListSortingStrategy}
       >
-        <ul
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr",
-            gap: 8,
-            listStyle: "none",
-            padding: 0,
-            marginTop: 16,
-          }}
-        >
+        <ul className="progression-list">
           {(() => {
             let beatCursor = 0;
             return progression.map((block) => {

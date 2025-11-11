@@ -16,6 +16,7 @@ import SuggestionStrip from "./components/SuggestionStrip";
 import { useProgressionManager } from "./modules/progression/useProgressionManager";
 import { usePlayback } from "./modules/audio/usePlayback";
 import type { Style } from "./modules/recommendation/markov";
+import SuggestionPanel from "./components/SuggestionPanel";
 
 // Tonalidades / estilos
 const KEYS = ["C", "G", "D", "F"] as const;
@@ -189,17 +190,12 @@ function App() {
     // -----------------
   // Render principal
   // -----------------
+  // -----------------
+  // Render principal
+  // -----------------
   return (
-    <main
-      style={{
-        padding: 16,
-        fontFamily: "system-ui, sans-serif",
-        background: "#1a1a1a",
-        color: "#fff",
-        minHeight: "100vh",
-      }}
-    >
-      <h1 style={{ fontSize: 22, marginBottom: 12 }}>ChordFlow — Prototipo</h1>
+    <main className="app-root">
+      <h1 className="app-title">ChordFlow — Aprendé armonía creando</h1>
 
       {/* Panel global (UI separada) */}
       <Toolbar
@@ -226,39 +222,16 @@ function App() {
       />
 
       {/* Export / Import JSON */}
-      <div
-        style={{
-          marginTop: 8,
-          display: "flex",
-          gap: 8,
-          flexWrap: "wrap",
-        }}
-      >
+      <div className="app-row gap-sm mt-xs">
         <button
           onClick={handleExportJSON}
-          style={{
-            border: "1px solid #4b5563",
-            background: "#111827",
-            color: "#e5e7eb",
-            borderRadius: 6,
-            padding: "6px 10px",
-            fontSize: 12,
-            cursor: "pointer",
-          }}
+          className="btn btn-ghost btn-xs"
         >
           Exportar biblioteca (JSON)
         </button>
         <button
           onClick={handleImportClick}
-          style={{
-            border: "1px solid #4b5563",
-            background: "#111827",
-            color: "#e5e7eb",
-            borderRadius: 6,
-            padding: "6px 10px",
-            fontSize: 12,
-            cursor: "pointer",
-          }}
+          className="btn btn-ghost btn-xs"
         >
           Importar biblioteca (JSON)
         </button>
@@ -272,41 +245,18 @@ function App() {
       </div>
 
       {/* Presets rápidos Pop / Neo */}
-      <div
-        style={{
-          display: "flex",
-          gap: 8,
-          flexWrap: "wrap",
-          marginTop: 8,
-        }}
-      >
+      <div className="app-row gap-sm mt-xs">
         <button
           onClick={handleLoadPop}
           aria-label="Cargar preset Pop"
-          onFocus={onFocusRing}
-          onBlur={onBlurRing}
-          style={{
-            border: "1px solid #4d6",
-            background: "#0a2",
-            color: "#fff",
-            borderRadius: 6,
-            padding: "8px 12px",
-          }}
+          className="btn btn-primary"
         >
           Cargar preset Pop
         </button>
         <button
           onClick={handleLoadNeo}
           aria-label="Cargar preset Neo"
-          onFocus={onFocusRing}
-          onBlur={onBlurRing}
-          style={{
-            border: "1px solid #556",
-            background: "#223",
-            color: "#fff",
-            borderRadius: 6,
-            padding: "8px 12px",
-          }}
+          className="btn btn-secondary"
         >
           Cargar preset Neo
         </button>
@@ -317,15 +267,7 @@ function App() {
         <div
           role="status"
           aria-live="polite"
-          style={{
-            background: "#7f1d1d",
-            border: "1px solid #ff4d4d",
-            borderRadius: 6,
-            padding: 8,
-            fontSize: 13,
-            marginTop: 12,
-            marginBottom: 12,
-          }}
+          className="alert alert-warning mt-sm mb-sm"
         >
           <strong>Atención métrica:</strong>
           {barWarnings.map((w) => (
@@ -353,19 +295,26 @@ function App() {
         onApplySuggestion={applySuggestion}
       />
 
+      <SuggestionPanel
+        style={style as Style}
+        keyName={key}
+        currentDegree={suggestionBaseDegree}
+        onApplySuggestion={applySuggestion}
+      />
+
       {/* Leyenda con tooltips T/S/D */}
-      <section style={{ marginTop: 16, fontSize: 12, color: "#ccc" }}>
+      <section className="app-legend">
         <strong>Leyenda:&nbsp;</strong>
         <InfoTooltip text="Centro de reposo; estabilidad y cierre.">
-          <span style={{ color: "#1e3a8a", cursor: "help" }}>T</span>
+          <span className="legend-tag legend-t">T</span>
         </InfoTooltip>
         &nbsp;= Tónica,&nbsp;
         <InfoTooltip text="Prepara el movimiento; puente hacia D o regreso a T.">
-          <span style={{ color: "#166534", cursor: "help" }}>S</span>
+          <span className="legend-tag legend-s">S</span>
         </InfoTooltip>
         &nbsp;= Subdominante,&nbsp;
         <InfoTooltip text="Tensión; empuja a resolver hacia T.">
-          <span style={{ color: "#7f1d1d", cursor: "help" }}>D</span>
+          <span className="legend-tag legend-d">D</span>
         </InfoTooltip>
         &nbsp;= Dominante.
       </section>

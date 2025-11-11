@@ -6,44 +6,34 @@
 // Usado en la leyenda T/S/D para fines educativos.
 // --------------------------------------------------
 
-import { useState } from "react";
+// --------------------------------------------------
+// 💬 ChordFlow — InfoTooltip (con theme global)
+// --------------------------------------------------
 
-// 📘 Props esperadas: texto del tooltip y contenido hijo (trigger visual)
+import React, { useState } from "react";
+
 type Props = {
-  text: string;              // Texto explicativo que aparece en el tooltip
-  children: React.ReactNode; // Elemento sobre el que se muestra (trigger)
+  text: string;
+  children: React.ReactNode;
 };
 
 export default function InfoTooltip({ text, children }: Props) {
-  // Estado interno: controla si el tooltip está visible
   const [open, setOpen] = useState(false);
 
   return (
     <span
-      style={{ position: "relative", display: "inline-block" }}
-      onMouseEnter={() => setOpen(true)}  // al pasar el mouse, mostrar
-      onMouseLeave={() => setOpen(false)} // al salir, ocultar
+      className="tooltip-trigger"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={() => setOpen(false)}
     >
       {children}
 
-      {/* Tooltip flotante */}
       {open && (
         <span
-          role="tooltip" // accesibilidad: indica que es una ayuda emergente
-          style={{
-            position: "absolute",
-            top: "120%",             // aparece debajo del trigger
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "#111",
-            color: "#fff",
-            border: "1px solid #333",
-            borderRadius: 6,
-            padding: "6px 8px",
-            fontSize: 12,
-            whiteSpace: "nowrap",    // evita saltos de línea
-            zIndex: 20,
-          }}
+          role="tooltip"
+          className="tooltip"
         >
           {text}
         </span>

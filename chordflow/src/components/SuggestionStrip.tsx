@@ -22,35 +22,21 @@ const SuggestionStrip: React.FC<SuggestionStripProps> = ({
   }
 
   return (
-    <section
-      style={{
-        marginTop: 16,
-        padding: 8,
-        borderRadius: 8,
-        background: "#111827",
-        border: "1px solid #1f2933",
-        color: "#e5e7eb",
-        fontSize: 13,
-      }}
-    >
-      <div style={{ marginBottom: 8, opacity: 0.9 }}>
-        Sugerencias según estilo <strong>{style}</strong> (desde{" "}
-        <strong>{currentDegree}</strong>):
+    <section className="panel suggestion-strip" style={{ fontSize: 13 }}>
+      <div className="suggestion-strip-header">
+        <span className="suggestion-strip-title">
+          Sugerencias según estilo <strong>{style}</strong> (desde{" "}
+          <strong>{currentDegree}</strong>):
+        </span>
       </div>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+
+      <div className="suggestion-strip-chips">
         {suggestions.map((s) => (
           <button
             key={s.degree}
+            type="button"
+            className="chip"
             onClick={() => onApplySuggestion(s.degree)}
-            style={{
-              borderRadius: 999,
-              border: "1px solid #374151",
-              padding: "4px 10px",
-              background: "#111827",
-              color: "#e5e7eb",
-              fontSize: 13,
-              cursor: "pointer",
-            }}
           >
             <div style={{ fontWeight: 600 }}>{s.degree}</div>
             <div style={{ fontSize: 11, opacity: 0.8 }}>{s.explanation}</div>

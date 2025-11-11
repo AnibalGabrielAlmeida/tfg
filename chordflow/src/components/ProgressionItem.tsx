@@ -27,30 +27,33 @@ const ProgressionItem: React.FC<ProgressionItemProps> = ({
   onDuplicate,
   onDelete,
 }) => {
-  // dnd-kit: habilitar drag para este item
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: block.id });
 
-  const style = {
+  const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    border: "1px solid #444",
-    borderRadius: 8,
-    padding: 12,
-    color: "white",
     background: bgForRole(role),
-    display: "flex",
-    justifyContent: "space-between",
-    flexWrap: "wrap" as const,
     cursor: "grab",
-    gap: 12,
   };
 
   return (
-    <li ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <li
+      ref={setNodeRef}
+      className="card progression-item"
+      style={style}
+      {...attributes}
+      {...listeners}
+    >
       {/* IZQ: grado + función */}
       <div style={{ minWidth: 80 }}>
-        <div style={{ fontSize: 20, fontWeight: "bold", lineHeight: 1.2 }}>
+        <div
+          style={{
+            fontSize: 20,
+            fontWeight: "bold",
+            lineHeight: 1.2,
+          }}
+        >
           {block.degree}
         </div>
         <div style={{ fontSize: 13, lineHeight: 1.2 }}>{role}</div>
@@ -72,7 +75,12 @@ const ProgressionItem: React.FC<ProgressionItemProps> = ({
           </select>
         </label>
         <div
-          style={{ fontSize: 12, opacity: 0.7, lineHeight: 1.2, marginTop: 4 }}
+          style={{
+            fontSize: 12,
+            opacity: 0.7,
+            lineHeight: 1.2,
+            marginTop: 4,
+          }}
         >
           total: {block.durationBeats} beats
         </div>
@@ -83,7 +91,13 @@ const ProgressionItem: React.FC<ProgressionItemProps> = ({
         <div style={{ fontSize: 12, lineHeight: 1.2 }}>
           compás {barIndex + 1}
         </div>
-        <div style={{ fontSize: 12, opacity: 0.7, lineHeight: 1.2 }}>
+        <div
+          style={{
+            fontSize: 12,
+            opacity: 0.7,
+            lineHeight: 1.2,
+          }}
+        >
           beat {beatInBar + 1} de 4
         </div>
       </div>
@@ -99,14 +113,7 @@ const ProgressionItem: React.FC<ProgressionItemProps> = ({
         }}
       >
         <button
-          style={{
-            background: "#000",
-            color: "#fff",
-            border: "1px solid #444",
-            borderRadius: 6,
-            padding: "4px 8px",
-            cursor: "pointer",
-          }}
+          className="btn btn-sm"
           onClick={(e) => {
             e.stopPropagation();
             onDuplicate(block.id);
@@ -115,14 +122,7 @@ const ProgressionItem: React.FC<ProgressionItemProps> = ({
           Duplicar
         </button>
         <button
-          style={{
-            background: "transparent",
-            color: "#fff",
-            border: "1px solid #ff4d4d",
-            borderRadius: 6,
-            padding: "4px 8px",
-            cursor: "pointer",
-          }}
+          className="btn btn-sm btn-danger"
           onClick={(e) => {
             e.stopPropagation();
             onDelete(block.id);

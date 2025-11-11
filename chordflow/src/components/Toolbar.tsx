@@ -7,31 +7,28 @@
 // Agregar bloque, Sugerir siguiente).
 // --------------------------------------------------
 
+// --------------------------------------------------
+// 🎚️ ChordFlow — Toolbar (Panel de control global)
+// --------------------------------------------------
+
 type Props = {
-  // 🎵 Tonalidad actual (C, G, D, F…)
   keyValue: string;
   keys: readonly string[];
-  onChangeKey: (k: string) => void; // callback cuando cambia la tonalidad
+  onChangeKey: (k: string) => void;
 
-  // 🎶 Tempo actual (en BPM)
   bpm: number;
-  onChangeBpm: (v: number) => void; // callback cuando cambia el BPM
+  onChangeBpm: (v: number) => void;
 
-  // 🎼 Estilo actual (Pop, Neo…)
   styleValue: string;
   styles: readonly string[];
-  onChangeStyle: (s: string) => void; // callback cuando cambia el estilo
+  onChangeStyle: (s: string) => void;
 
-  // ▶️ Controles globales
   onPlay: () => void;
   onStop: () => void;
   onAdd: () => void;
   onSuggest: () => void;
 };
 
-// --------------------------------------------------
-// 🧩 Componente principal
-// --------------------------------------------------
 export default function Toolbar({
   keyValue,
   keys,
@@ -47,21 +44,10 @@ export default function Toolbar({
   onSuggest,
 }: Props) {
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-        gap: 12,
-        alignItems: "center",
-        background: "#121212",
-        border: "1px solid #2a2a2a",
-        borderRadius: 10,
-        padding: 12,
-      }}
-    >
+    <div className="panel toolbar">
       {/* Selector de tonalidad */}
       <label>
-        Key&nbsp;
+        Key
         <select
           value={keyValue}
           onChange={(e) => onChangeKey(e.target.value)}
@@ -76,7 +62,7 @@ export default function Toolbar({
 
       {/* Control de tempo */}
       <label>
-        BPM&nbsp;
+        BPM
         <input
           type="number"
           min={60}
@@ -92,7 +78,7 @@ export default function Toolbar({
 
       {/* Compás (por ahora fijo en 4/4) */}
       <label>
-        Meter&nbsp;
+        Meter
         <input
           value="4/4"
           readOnly
@@ -102,7 +88,7 @@ export default function Toolbar({
 
       {/* Selector de estilo */}
       <label>
-        Style&nbsp;
+        Style
         <select
           value={styleValue}
           onChange={(e) => onChangeStyle(e.target.value)}
@@ -116,11 +102,17 @@ export default function Toolbar({
       </label>
 
       {/* Botones de control */}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button onClick={onPlay}>Play</button>
-        <button onClick={onStop}>Stop</button>
-        <button onClick={onAdd}>+ Bloque</button>
-        <button onClick={onSuggest}>
+      <div className="toolbar-controls">
+        <button className="btn btn-primary" onClick={onPlay}>
+          Play
+        </button>
+        <button className="btn btn-ghost" onClick={onStop}>
+          Stop
+        </button>
+        <button className="btn" onClick={onAdd}>
+          + Bloque
+        </button>
+        <button className="btn" onClick={onSuggest}>
           Sugerir siguiente ({styleValue})
         </button>
       </div>
