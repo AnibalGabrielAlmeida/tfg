@@ -18,12 +18,13 @@ import Toolbar from "./components/Toolbar";
 import InfoTooltip from "./components/InfoTooltip";
 import LibraryPanel from "./components/LibraryPanel";
 import { saveNewPreset } from "./modules/storage/library";
-import { barsUsage, exceedsAnyBar } from "./modules/progression/types";
+/*import { barsUsage, exceedsAnyBar } from "./modules/progression/types";
 import { arrayMove } from "@dnd-kit/sortable";
 import { getBarWarnings } from "./modules/progression/metrics";
-import SaveBar from "./components/SaveBar";
+*/import SaveBar from "./components/SaveBar";
 import SuggestionStrip from "./components/SuggestionStrip";
 import type { Style } from "./modules/recommendation/markov";
+import { useProgressionManager } from "./modules/progression/useProgressionManager";
 
 // Tonalidades / estilos
 const KEYS = ["C", "G", "D", "F"] as const;
@@ -38,19 +39,32 @@ function App() {
   const [bpm, setBpm] = useState(100);
   const [style, setStyle] = useState<(typeof STYLES)[number]>("Pop");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+const {
+  progression,
+  barWarnings,
+  lastBlock,
+  suggestionBaseDegree,
+  addBlock,
+  updateBlockDuration,
+  duplicateBlock,
+  deleteBlock,
+  handleReorder,
+  appendBlockWithDegree,
+  setFromPreset,
+} = useProgressionManager();
 
   // Estado de reproducción (para auto re-schedule)
   const [isPlaying, setIsPlaying] = useState(false);
 
   // Progresión + generador de IDs
-  const nextIdRef = useRef(5);
-  const [progression, setProgression] = useState<ChordBlock[]>([
+  //const nextIdRef = useRef(5);
+ /* const [progression, setProgression] = useState<ChordBlock[]>([
     { id: "b1", degree: "I", durationBeats: 4 },
     { id: "b2", degree: "vi", durationBeats: 4 },
     { id: "b3", degree: "IV", durationBeats: 4 },
     { id: "b4", degree: "V", durationBeats: 4 },
   ]);
-
+*/
   const onFocusRing = (e: React.FocusEvent<HTMLButtonElement | HTMLInputElement>) => {
   e.currentTarget.style.boxShadow = "0 0 0 2px #6cf";
   };
@@ -60,15 +74,15 @@ function App() {
 
   // --- CRUD ---
   // ✅ Validación 4/4: bloquea cambios de duración que rompen el compás
-  function updateBlockDuration(id: string, newBeats: number) {
+  /*function updateBlockDuration(id: string, newBeats: number) {
     setProgression((prev) => {
       const next = prev.map((b) => (b.id === id ? { ...b, durationBeats: newBeats } : b));
       return exceedsAnyBar(next) ? prev : next;
     });
-  }
+  }*/
 
   // ✅ Validación 4/4 al agregar: wrap inteligente (1 beat si hay espacio; si no, nuevo compás con 4)
-  function addBlock() {
+  /*function addBlock() {
   setProgression((prev) => {
     const newBlock: ChordBlock = {
       id: `b${nextIdRef.current++}`,
@@ -89,8 +103,8 @@ function App() {
     };
     return [...prev, wrapped];
   });
-}
-
+}*/
+/*
   function duplicateBlock(id: string) {
     const original = progression.find((b) => b.id === id);
     if (!original) return;
@@ -117,8 +131,8 @@ function App() {
       return exceedsAnyBar(next) ? prev : next; // validación 4/4
     });
   };
-
-
+*/
+/*
   function loadPresetAndMaybePlay(p: ReturnType<typeof getPopPreset>) {
     // Setea estado visible
     setBpm(p.bpm);
@@ -140,8 +154,8 @@ function App() {
       scheduleProgression(reId, p.bpm, p.key);
       play().then(() => setIsPlaying(true));
     }
-  }
-
+  }*/
+/*
   function loadPreset(kind: "Pop" | "Neo") {
     const preset = kind === "Pop" ? getPopPreset() : getNeoPreset();
     setBpm(preset.bpm);
@@ -149,22 +163,14 @@ function App() {
     setStyle(preset.style as (typeof STYLES)[number]);
     setProgression(preset.progression);
   }
-
-
-  function handleLoadPop() {
-    loadPresetAndMaybePlay(getPopPreset());
-  }
-
-  function handleLoadNeo() {
-    loadPresetAndMaybePlay(getNeoPreset());
-  }
+*/
 
   // --- Warning métrico (4/4) ---
-  const barWarnings = getBarWarnings(progression);
+/*  const barWarnings = getBarWarnings(progression);
 
   const lastBlock = progression[progression.length - 1];
   const suggestionBaseDegree = lastBlock?.degree ?? "I";
-
+*//*
   function applySuggestion(degree: string) {
     setProgression((prev) => {
       const newBlock: ChordBlock = {
@@ -176,11 +182,14 @@ function App() {
     const candidate: ChordBlock[] = [...prev, newBlock];
     return exceedsAnyBar(candidate) ? prev : candidate;
   });
+}*/
+function applySuggestion(degree: string) {
+  appendBlockWithDegree(degree as ChordBlock["degree"], 4);
 }
 
 
   // --- Sugerencia automática por estilo (Pop/Neo) ---
-  function suggestAndInsertNext() {
+ /* function suggestAndInsertNext() {
     setProgression((prev) => {
       const last = prev[prev.length - 1];
       const base = last?.degree ?? "I";
@@ -199,7 +208,12 @@ function App() {
         ? prev
         : candidate;
     });
-  }
+  }*/
+function suggestAndInsertNext() {
+  const base = lastBlock?.degree ?? "I";
+  const suggested = suggestNextDegree(style, base);
+  appendBlockWithDegree(suggested as ChordBlock["degree"], 4);
+}
 
   const [title, setTitle] = useState("Mi progresión");
   const [libraryOpen, setLibraryOpen] = useState(false);
@@ -218,13 +232,51 @@ function App() {
   }
 
   // handler al abrir preset desde el panel
-  function handleLoadPreset(preset: { title: string; bpm: number; key: string; style: string; progression: ChordBlock[] }) {
+  /*function handleLoadPreset(preset: { title: string; bpm: number; key: string; style: string; progression: ChordBlock[] }) {
     setTitle(preset.title);
     setBpm(preset.bpm);
     setKey(preset.key as typeof key);
     setStyle(preset.style as typeof style);
     setProgression(preset.progression);
+  }*/
+function loadPresetAndMaybePlay(p: ReturnType<typeof getPopPreset>) {
+  setBpm(p.bpm);
+  setKey(p.key as typeof key);
+  setStyle(p.style as typeof style);
+
+  setFromPreset(p.progression);
+
+  if (isPlaying) {
+    stop();
+    scheduleProgression(p.progression, p.bpm, p.key);
+    play().then(() => setIsPlaying(true));
+  } else {
+    scheduleProgression(p.progression, p.bpm, p.key);
+    play().then(() => setIsPlaying(true));
   }
+}
+
+function loadPreset(kind: "Pop" | "Neo") {
+  const preset = kind === "Pop" ? getPopPreset() : getNeoPreset();
+  setBpm(preset.bpm);
+  setKey(preset.key as (typeof KEYS)[number]);
+  setStyle(preset.style as (typeof STYLES)[number]);
+  setFromPreset(preset.progression);
+}
+
+function handleLoadPreset(preset: {
+  title: string;
+  bpm: number;
+  key: string;
+  style: string;
+  progression: ChordBlock[];
+}) {
+  setTitle(preset.title);
+  setBpm(preset.bpm);
+  setKey(preset.key as typeof key);
+  setStyle(preset.style as typeof style);
+  setFromPreset(preset.progression);
+}
 
   // --- Transporte: Play/Stop ---
   const handlePlay = async () => {
