@@ -17,6 +17,7 @@ import { useProgressionManager } from "./modules/progression/useProgressionManag
 import { usePlayback } from "./modules/audio/usePlayback";
 import type { Style } from "./modules/recommendation/markov";
 import SuggestionPanel from "./components/SuggestionPanel";
+import ChordPool from "./components/ChordPool"; // 👈 ya lo tenías
 
 // Tonalidades / estilos
 const KEYS = ["C", "G", "D", "F"] as const;
@@ -33,8 +34,9 @@ function App() {
   const [title, setTitle] = useState("Mi progresión");
   const [libraryOpen, setLibraryOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [showPresets, setShowPresets] = useState(false);
 
-  // Progresión (hook nuevo)
+  // Progresión
   const {
     progression,
     barWarnings,
@@ -49,23 +51,16 @@ function App() {
     setFromPreset,
   } = useProgressionManager();
 
-  // Playback (hook nuevo)
+  // Playback
   const { isPlaying, playFromState, stopPlayback, rescheduleOnChange } = usePlayback();
-
-  // --- Focus ring accesible ---
-  const onFocusRing = (
-    e: React.FocusEvent<HTMLButtonElement | HTMLInputElement>
-  ) => {
-    e.currentTarget.style.boxShadow = "0 0 0 2px #6cf";
-  };
-  const onBlurRing = (
-    e: React.FocusEvent<HTMLButtonElement | HTMLInputElement>
-  ) => {
-    e.currentTarget.style.boxShadow = "none";
-  };
 
   // Aplicar una sugerencia concreta (desde SuggestionStrip)
   function applySuggestion(degree: string) {
+    appendBlockWithDegree(degree as ChordBlock["degree"], 4);
+  }
+
+  // 👇 NUEVO: insertar acordes desde el Pool
+  function handleInsertFromPool(degree: string) {
     appendBlockWithDegree(degree as ChordBlock["degree"], 4);
   }
 
@@ -111,7 +106,6 @@ function App() {
     setFromPreset(p.progression);
 
     if (isPlaying) {
-      // reinicia con la nueva progresión
       stopPlayback();
       playFromState(p.progression, p.bpm, p.key);
     } else {
@@ -127,7 +121,7 @@ function App() {
     loadPresetAndMaybePlay(getNeoPreset());
   }
 
-  // --- Transporte: Play/Stop desde Toolbar ---
+  // Play/Stop desde Toolbar
   const handlePlay = async () => {
     await playFromState(progression, bpm, key);
   };
@@ -186,10 +180,6 @@ function App() {
     e.target.value = "";
   }
 
-
-    // -----------------
-  // Render principal
-  // -----------------
   // -----------------
   // Render principal
   // -----------------
@@ -213,6 +203,36 @@ function App() {
         onSuggest={suggestAndInsertNext}
       />
 
+      {/* Presets rápidos como desplegable */}
+      <div className="app-row gap-sm mt-xs">
+        <button
+          className="btn btn-ghost btn-sm"
+          type="button"
+          onClick={() => setShowPresets((v) => !v)}
+        >
+          {showPresets ? "Ocultar estilos de ejemplo" : "Cargar estilos de ejemplo"}
+        </button>
+
+        {showPresets && (
+          <div className="app-row gap-sm">
+            <button
+              onClick={handleLoadPop}
+              aria-label="Cargar preset Pop"
+              className="btn btn-primary"
+            >
+              Pop (I–V–vi–IV)
+            </button>
+            <button
+              onClick={handleLoadNeo}
+              aria-label="Cargar preset Neo"
+              className="btn btn-secondary"
+            >
+              Neo-soul (ii–V–I…)
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Guardar / Biblioteca */}
       <SaveBar
         title={title}
@@ -223,16 +243,10 @@ function App() {
 
       {/* Export / Import JSON */}
       <div className="app-row gap-sm mt-xs">
-        <button
-          onClick={handleExportJSON}
-          className="btn btn-ghost btn-xs"
-        >
+        <button onClick={handleExportJSON} className="btn btn-ghost btn-xs">
           Exportar biblioteca (JSON)
         </button>
-        <button
-          onClick={handleImportClick}
-          className="btn btn-ghost btn-xs"
-        >
+        <button onClick={handleImportClick} className="btn btn-ghost btn-xs">
           Importar biblioteca (JSON)
         </button>
         <input
@@ -244,23 +258,8 @@ function App() {
         />
       </div>
 
-      {/* Presets rápidos Pop / Neo */}
-      <div className="app-row gap-sm mt-xs">
-        <button
-          onClick={handleLoadPop}
-          aria-label="Cargar preset Pop"
-          className="btn btn-primary"
-        >
-          Cargar preset Pop
-        </button>
-        <button
-          onClick={handleLoadNeo}
-          aria-label="Cargar preset Neo"
-          className="btn btn-secondary"
-        >
-          Cargar preset Neo
-        </button>
-      </div>
+      {/* 👇 NUEVO: Banco de acordes exploratorio */}
+      <ChordPool keyName={key} onInsert={handleInsertFromPool} />
 
       {/* Warning métrico (si algún compás supera 4 beats) */}
       {barWarnings.length > 0 && (

@@ -59,11 +59,15 @@ body {
 }
 
 /* Contenedor principal de la app */
+/* Contenedor principal de la app */
 .app-root {
-  padding: 16px;
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: 24px 16px;
+  max-width: 1100px;
+  margin: 0 auto;    
+  /* centra el contenedor */
 }
+
+
 
 /* Título principal */
 .app-title {
@@ -98,7 +102,7 @@ body {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-soft);
-  padding: 8px 12px;
+  padding: 6px 10px;
 }
 
 /* Tarjeta de sugerencia (panel PRO) */
@@ -119,6 +123,15 @@ body {
   border-color: var(--color-accent);
   background: rgba(15, 23, 42, 0.9);
   transform: translateY(-1px);
+}
+
+/* Alineación interna de paneles dentro del layout centrado */
+.panel,
+.savebar,
+.progression-list,
+.library-list {
+  text-align: left;
+  width: 100%;
 }
 
 /* ----------------------------------------
@@ -409,7 +422,6 @@ body {
    Progresión (lista + ítems)
    ---------------------------------------- */
 
-/* Item de progresión (envoltorio del acorde) */
 .progression-item {
   display: flex;
   justify-content: space-between;
@@ -418,14 +430,13 @@ body {
   color: var(--color-text);
 }
 
-/* Lista de bloques de progresión */
 .progression-list {
   display: grid;
   grid-template-columns: 1fr;
   gap: 8px;
   list-style: none;
   padding: 0;
-  margin-top: 16px;
+  margin-top: 20px;
 }
 
 /* ----------------------------------------
@@ -528,4 +539,11 @@ body {
 .legend-d {
   background: rgba(245, 158, 11, 0.16);
   color: var(--color-warning);
+}
+
+/* Pool de acordes */
+.pool-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
