@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { Style } from "../modules/recommendation/markov";
 import { getScoredSuggestions } from "../modules/recommendation/scoring";
-import { getSuggestionExplanation } from "../modules/recommendation/explanations";
+import { getFullSuggestionExplanation } from "../modules/recommendation/explanations";
 import { functionalRoleMajor } from "../modules/theory/functions";
 
 type Props = {
@@ -68,7 +68,7 @@ export default function SuggestionPanel({
           {suggestions.map((sug) => {
             const func = functionalRoleMajor(sug.degree);
             const color = getFunctionColor(sug.degree);
-            const explanation = getSuggestionExplanation({
+            const full = getFullSuggestionExplanation({
               style,
               fromDegree: currentDegree,
               toDegree: sug.degree,
@@ -79,6 +79,13 @@ export default function SuggestionPanel({
                 key={sug.degree}
                 className="card-suggestion"
                 style={{ borderColor: color }}
+                title={
+                  `${full.full.origin}\n` +
+                  `${full.full.func}\n` +
+                  `${full.full.movement}\n` +
+                  `${full.full.color}\n` +
+                  `${full.full.styleUsage}`
+                }
               >
                 {/* Columna izquierda: grado + función */}
                 <div style={{ minWidth: 90 }}>
@@ -98,7 +105,7 @@ export default function SuggestionPanel({
 
                 {/* Columna central: explicación corta */}
                 <div style={{ flex: 1, fontSize: 12 }}>
-                  {explanation}
+                  {full.short}
                 </div>
 
                 {/* Columna derecha: botón Insertar */}

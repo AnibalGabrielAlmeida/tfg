@@ -5,6 +5,7 @@ import {
   type TonalKey,
   type RomanDegree,
 } from "../modules/theory/roman2";
+import { getFullExplanation } from "../modules/recommendation/explanations";
 
 type ChordPoolProps = {
   keyName: string;
@@ -95,13 +96,20 @@ const ChordPool: React.FC<ChordPoolProps> = ({ keyName, onInsert }) => {
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {group.degrees.map((d) => {
                 const label = getChordLabel(keyName, d.degree);
-
-                return (
+                const full = getFullExplanation(d.degree);
+                 return (
                   <button
                     key={d.degree}
                     className="chip"
                     onClick={() => onInsert(d.degree)}
                     style={{ cursor: "pointer" }}
+                    title={
+                      `${full.origin}\n` +
+                      `${full.func}\n` +
+                      `${full.movement}\n` +
+                      `${full.color}\n` +
+                      `${full.styleUsage}`
+                    }
                   >
                     <strong>{label}</strong>{" "}
                     <span style={{ fontSize: 11, opacity: 0.7 }}>

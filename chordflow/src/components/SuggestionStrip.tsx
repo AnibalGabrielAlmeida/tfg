@@ -1,6 +1,7 @@
 import React from "react";
 import type { Style } from "../modules/recommendation/markov";
 import { useSuggestions } from "../modules/recommendation/useSuggestions";
+import { getFullSuggestionExplanation } from "../modules/recommendation/explanations";
 
 type SuggestionStripProps = {
   style: Style;
@@ -31,17 +32,31 @@ const SuggestionStrip: React.FC<SuggestionStripProps> = ({
       </div>
 
       <div className="suggestion-strip-chips">
-        {suggestions.map((s) => (
-          <button
-  key={s.degree}
-  onClick={() => onApplySuggestion(s.degree)}
-  className="chip"
->
-  <span style={{ fontWeight: 600 }}>{s.degree}</span>
-  <span style={{ fontSize: 11, opacity: 0.8 }}>{s.explanation}</span>
-</button>
+       {suggestions.map((s) => {
+        const full = getFullSuggestionExplanation({
+          style,
+          fromDegree: currentDegree ?? "I",
+          toDegree: s.degree,
+        });
 
-        ))}
+        return (
+          <button
+            key={s.degree}
+            onClick={() => onApplySuggestion(s.degree)}
+            className="chip"
+            title={
+              `${full.full.origin}\n` +
+              `${full.full.func}\n` +
+              `${full.full.movement}\n` +
+              `${full.full.color}\n` +
+              `${full.full.styleUsage}`
+            }
+          >
+            <span style={{ fontWeight: 600 }}>{s.degree}</span>
+            <span style={{ fontSize: 11, opacity: 0.8 }}>{full.short}</span>
+          </button>
+        );
+      })}
       </div>
     </section>
   );

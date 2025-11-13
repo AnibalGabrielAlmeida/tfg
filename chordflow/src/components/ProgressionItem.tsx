@@ -3,6 +3,8 @@ import React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { ChordBlock } from "../modules/progression/types";
+import { getFullExplanation } from "../modules/recommendation/explanations";
+import { functionalRoleMajor } from "../modules/theory/functions";
 
 export type ProgressionItemProps = {
   block: ChordBlock;
@@ -57,8 +59,20 @@ const ProgressionItem: React.FC<ProgressionItemProps> = ({
     ...roleStyles,
   };
 
+  const full = getFullExplanation(block.degree);
+  const funcLabel = functionalRoleMajor(block.degree);
+
   return (
-    <li ref={setNodeRef} className="card progression-item" style={style}>
+    <li 
+    ref={setNodeRef} 
+    className="card progression-item" 
+    style={style} 
+    title={
+      `${block.degree} (${funcLabel})\n` +
+      `${full.origin}\n` +
+      `${full.color}\n` +
+      `${full.styleUsage}`
+    }>
       {/* 🔹 Zona draggeable grande: grado + duración + métrica */}
       <div
         style={{
