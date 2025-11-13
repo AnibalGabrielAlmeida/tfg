@@ -1,83 +1,50 @@
 import React, { useState } from "react";
 import { THEORY_SETS } from "../modules/theory/theorySets";
-
-// Las escalas existentes (diatónicas mayores)
-const SCALES: Record<string, string[]> = {
-  C: ["C", "D", "E", "F", "G", "A", "B"],
-  G: ["G", "A", "B", "C", "D", "E", "F#"],
-  D: ["D", "E", "F#", "G", "A", "B", "C#"],
-  F: ["F", "G", "A", "Bb", "C", "D", "E"],
-};
+import {
+  degreeToChordName,
+  type TonalKey,
+  type RomanDegree,
+} from "../modules/theory/roman2";
 
 type ChordPoolProps = {
   keyName: string;
   onInsert: (degree: string) => void;
 };
 
-// --------------------------------------------------
-// Mapea grados complejos como V/V o bIII → etiqueta real
-// --------------------------------------------------
+// ---------------------------------------------
+// Helpers para validar key y grado
+// ---------------------------------------------
+const TONAL_KEYS: TonalKey[] = [
+  "C", "C#", "D", "D#", "E",
+  "F", "F#", "G", "G#", "A", "A#", "B",
+];
 
+function isValidTonalKey(k: string): k is TonalKey {
+  return TONAL_KEYS.includes(k as TonalKey);
+}
+
+// OJO: debe coincidir con RomanDegree de romanPro.ts
+const ROMAN_DEGREES: RomanDegree[] = [
+  "I", "ii", "iii", "IV", "V", "vi", "vii°",
+  "bIII", "iv", "bVI", "bVII",
+  "V/ii", "V/iii", "V/IV", "V/V", "V/vi",
+];
+
+function isValidRomanDegree(d: string): d is RomanDegree {
+  return ROMAN_DEGREES.includes(d as RomanDegree);
+}
+
+// --------------------------------------------------
+// Mapea grados como I, ii, V/ii, bVII → etiqueta real
+// usando el motor teórico PRO (romanPro).
+// --------------------------------------------------
 function getChordLabel(keyName: string, degree: string): string {
-  const scale = SCALES[keyName] ?? SCALES["C"];
-
-  // casos simples (diatónicos)
-  const DEGREE_INDEX: Record<string, number> = {
-    I: 0, ii: 1, iii: 2, IV: 3, V: 4, vi: 5, "vii°": 6,
-  };
-
-  if (DEGREE_INDEX[degree] !== undefined) {
-    const root = scale[DEGREE_INDEX[degree]];
-    if (degree === "ii" || degree === "iii" || degree === "vi") return root + "m";
-    if (degree === "vii°") return root + "dim";
-    return root;
+  if (isValidTonalKey(keyName) && isValidRomanDegree(degree)) {
+    // Usa el motor teórico: C + bVII → Bb, D + ii → Em, etc.
+    return degreeToChordName(keyName as TonalKey, degree as RomanDegree);
   }
 
-  // MODAL interchange
-  const modalRoots: Record<string, string> = {
-    bIII: "Eb",
-    bVI: "Ab",
-    bVII: "Bb",
-    iv: "Fm",
-    i: "Cm",
-    "ii°": "Ddim",
-    bII: "Db",
-  };
-
-  if (modalRoots[degree]) return modalRoots[degree];
-
-  // Dominantes secundarios
-  const secondary: Record<string, string> = {
-    "V/ii": "A7",
-    "V/iii": "B7",
-    "V/IV": "C7",
-    "V/V": "D7",
-    "V/vi": "E7",
-  };
-
-  if (secondary[degree]) return secondary[degree];
-
-  // Sustitución tritonal
-  const tritone: Record<string, string> =  {
-    "SubV/ii": "Eb7",
-    "SubV/iii": "F7",
-    "SubV/IV": "Gb7",
-    "SubV/V": "Ab7",
-    "SubV/vi": "Bb7",
-  };
-
-  if (tritone[degree]) return tritone[degree];
-
-  // Menor armónica
-  const harmonicMinor: Record<string, string> = {
-    "V+": "G+",
-    "vii°": "Bdim",
-    "iii+": "E+",
-    "bVI+": "Ab+",
-  };
-
-  if (harmonicMinor[degree]) return harmonicMinor[degree];
-
+  // Fallback ultra simple si entra algo que no está en RomanDegree
   return degree;
 }
 

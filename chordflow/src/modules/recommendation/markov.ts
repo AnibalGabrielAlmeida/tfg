@@ -5,28 +5,156 @@
 // NEO: probabilístico (weighted random)
 // Con penalización simple de repeticiones/loops triviales
 // y función auxiliar para top-3 sugerencias.
+//
+// EXTENSIÓN:
+// - Se agregan grados modales: bIII, bVI, bVII, iv
+// - Se agregan algunos dominantes secundarios: V/ii, V/V, V/vi
 // --------------------------------------------------
 
+type MarkovRow = Record<string, number>;
+type MarkovMatrix = Record<string, MarkovRow>;
+
 // ---------- 🎸 POP: clásico (transiciones más cadenciales) ----------
-const MARKOV_POP: Record<string, Record<string, number>> = {
-  I:      { vi: 3, IV: 2, V: 2, ii: 1 },
+const MARKOV_POP: MarkovMatrix = {
+  // Igual que antes, con un toque de bVII y bVI/bIII en lugares suaves
+  I:      { vi: 3, IV: 2, V: 2, ii: 1, bVII: 1 },
   ii:     { V: 4, "vii°": 1, IV: 1 },
-  iii:    { vi: 3, IV: 2, ii: 1 },
-  IV:     { V: 3, ii: 2, I: 1 },
-  V:      { I: 4, vi: 2, IV: 1 },
-  vi:     { IV: 3, ii: 2, V: 1 },
+  iii:    { vi: 3, IV: 2, ii: 1, bIII: 1 },
+  IV:     { V: 3, ii: 2, I: 1, bVII: 1 },
+  V:      { I: 4, vi: 2, IV: 1, bVII: 1 },
+  vi:     { IV: 3, ii: 2, V: 1, I: 1, bVI: 1 },
   "vii°": { I: 4, V: 2 },
+
+  // Grados modales POP (menos usados, pero posibles)
+  bVII:   { I: 4, IV: 2, V: 1 },
+  bIII:   { IV: 2, vi: 2, bVI: 1, I: 1 },
+  bVI:    { IV: 3, V: 2, bIII: 1 },
+  iv:     { I: 3, bVII: 2, ii: 1 },
 };
 
 // ---------- 🎹 NEO: más permisivo, circular y suave ----------
-const MARKOV_NEO: Record<string, Record<string, number>> = {
-  ii:     { I: 3, IV: 3, V: 2, "vii°": 1, iii: 1 },
-  I:      { vi: 3, IV: 3, ii: 2, V: 1, iii: 1 },
-  iii:    { vi: 3, IV: 3, ii: 2, I: 1 },
-  IV:     { I: 3, ii: 3, V: 2, vi: 2, iii: 1 },
-  V:      { I: 2, vi: 3, IV: 3, ii: 2 },
-  vi:     { IV: 3, ii: 3, I: 2, V: 1, iii: 2 },
-  "vii°": { I: 2, V: 2, iii: 2, IV: 1 },
+const MARKOV_NEO: MarkovMatrix = {
+  // Diatónicos enriquecidos
+  ii: {
+    I: 3,
+    IV: 3,
+    V: 2,
+    "vii°": 1,
+    iii: 1,
+    "V/V": 1,
+  },
+
+  I: {
+    vi: 3,
+    IV: 3,
+    ii: 2,
+    V: 1,
+    iii: 1,
+    bVII: 2,
+    bIII: 1,
+  },
+
+  iii: {
+    vi: 3,
+    IV: 3,
+    ii: 2,
+    I: 1,
+    bVI: 2,
+  },
+
+  IV: {
+    I: 3,
+    ii: 3,
+    V: 2,
+    vi: 2,
+    iii: 1,
+    iv: 2,
+    bVII: 1,
+  },
+
+  V: {
+    I: 2,
+    vi: 3,
+    IV: 3,
+    ii: 2,
+    bVII: 2,
+  },
+
+  vi: {
+    IV: 3,
+    ii: 3,
+    I: 2,
+    V: 1,
+    iii: 2,
+    bVI: 2,
+  },
+
+  "vii°": {
+    I: 2,
+    V: 2,
+    iii: 2,
+    IV: 1,
+  },
+
+  // Modales / intercambio
+  bVII: {
+    I: 3,
+    IV: 3,
+    V: 2,
+    bIII: 2,
+  },
+
+  bIII: {
+    IV: 3,
+    vi: 2,
+    bVI: 2,
+    I: 1,
+  },
+
+  bVI: {
+    IV: 3,
+    V: 2,
+    bIII: 2,
+    ii: 1,
+  },
+
+  iv: {
+    I: 3,
+    bVII: 3,
+    ii: 2,
+    V: 1,
+  },
+
+  // Dominantes secundarios (muy dirigidos)
+  "V/ii": {
+    ii: 4,
+    V: 1,
+    I: 1,
+  },
+
+  "V/iii": {
+    iii: 4,
+    vi: 1,
+    I: 1,
+  },
+
+  "V/IV": {
+    IV: 4,
+    ii: 1,
+    I: 1,
+  },
+
+  "V/V": {
+    V: 4,
+    I: 1,
+    vi: 1,
+  },
+
+  "V/vi": {
+    vi: 4,
+    IV: 1,
+    I: 1,
+  },
 };
 
 // 🎚️ Estilos disponibles
@@ -42,18 +170,20 @@ let prevSuggested: string | null = null;
 // 🎯 Funciones auxiliares
 // --------------------------------------------------
 
-// 🔹 top1(row): devuelve el acorde más probable (usado por POP)
-function top1(row?: Record<string, number>) {
+function top1(row?: MarkovRow): string {
   if (!row) return "V"; // fallback
-  let best = "I", w = -Infinity;
+  let best = "I";
+  let w = -Infinity;
   for (const [deg, ww] of Object.entries(row)) {
-    if (ww > w) { w = ww; best = deg; }
+    if (ww > w) {
+      w = ww;
+      best = deg;
+    }
   }
   return best;
 }
 
-// 🔸 weightedPick(row): elección aleatoria ponderada (usado por NEO)
-function weightedPick(row?: Record<string, number>) {
+function weightedPick(row?: MarkovRow): string {
   if (!row) return "V";
   const entries = Object.entries(row);
   const total = entries.reduce((s, [, w]) => s + w, 0);
@@ -64,47 +194,41 @@ function weightedPick(row?: Record<string, number>) {
   return entries[0][0];
 }
 
-// 🔻 Penalización simple de repetición / loops triviales
 function applyPenalties(
-  row: Record<string, number> | undefined,
+  row: MarkovRow | undefined,
   current: string
-): Record<string, number> | undefined {
+): MarkovRow | undefined {
   if (!row) return row;
-  const penalized: Record<string, number> = {};
+  const penalized: MarkovRow = {};
 
   for (const [deg, w] of Object.entries(row)) {
     let weight = w;
 
-    // 1) Evitar "rebote" inmediato tipo I → V → I → V
-    // Si el último sugerido fue igual al grado actual
-    // y el penúltimo fue 'deg', penalizamos volver a ese penúltimo.
+    // 1) Evitar rebote inmediato tipo I → V → I → V
     if (lastSuggested === current && prevSuggested && deg === prevSuggested) {
-      weight *= 0.4; // baja la probabilidad del loop de 2 pasos
+      weight *= 0.4;
     }
 
-    // 2) Evitar insistir demasiado en el último sugerido (colgarse)
+    // 2) Evitar insistir demasiado en el último sugerido
     if (deg === lastSuggested) {
       weight *= 0.6;
     }
 
-    // 3) (Opcional) evitar quedarse en el mismo grado actual
+    // 3) Evitar quedarse en el mismo grado actual
     if (deg === current) {
       weight *= 0.3;
     }
 
-    // Evitar pesos cero
     if (weight <= 0) weight = 0.0001;
-
     penalized[deg] = weight;
   }
 
   return penalized;
 }
 
-// Rankeo para top-N (top-1 / top-3)
 type RankedSuggestion = { degree: string; weight: number };
 
-function rankRow(row?: Record<string, number>): RankedSuggestion[] {
+function rankRow(row?: MarkovRow): RankedSuggestion[] {
   if (!row) return [];
   return Object.entries(row)
     .map(([degree, weight]) => ({ degree, weight }))
@@ -118,7 +242,6 @@ export function suggestNextDegree(style: Style, current: string): string {
   const baseRow =
     style === "Neo" ? MARKOV_NEO[current] : MARKOV_POP[current];
 
-  // Aplica penalización de repetición / loops triviales
   const row = applyPenalties(baseRow, current) ?? baseRow;
 
   let next: string;
@@ -128,7 +251,6 @@ export function suggestNextDegree(style: Style, current: string): string {
     next = top1(row);
   }
 
-  // Actualizar memoria mínima de sugerencias
   prevSuggested = lastSuggested;
   lastSuggested = next;
 
@@ -151,10 +273,11 @@ export function suggestNextTopN(
 }
 
 // --------------------------------------------------
-// ⚙️ Compatibilidad con versiones anteriores (opcional)
+// ⚙️ Compatibilidad POP directa
 // --------------------------------------------------
 export function suggestNextDegreePop(current: string): string {
-  const row = applyPenalties(MARKOV_POP[current], current) ?? MARKOV_POP[current];
+  const row =
+    applyPenalties(MARKOV_POP[current], current) ?? MARKOV_POP[current];
   const next = top1(row);
   prevSuggested = lastSuggested;
   lastSuggested = next;
@@ -165,18 +288,12 @@ export function suggestNextDegreePop(current: string): string {
 // 🔀 PRO: mezcla de estilos (α·Pop + (1–α)·Neo)
 // --------------------------------------------------
 
-/**
- * Devuelve una fila Markov mezclada entre Pop y Neo.
- * alpha = 1   → solo Pop
- * alpha = 0   → solo Neo
- * alpha = 0.5 → mezcla 50/50
- */
 export function getBlendedMarkovRow(
   style: Style,
   current: string,
   alpha: number = 1
-): Record<string, number> {
-  // Si el usuario elige Pop o Neo "puro", usamos solo esa matriz
+): MarkovRow {
+  // Pop o Neo "puros"
   if (style === "Pop" && alpha >= 0.999) {
     return MARKOV_POP[current] ?? {};
   }
@@ -184,11 +301,10 @@ export function getBlendedMarkovRow(
     return MARKOV_NEO[current] ?? {};
   }
 
-  // Mezcla Pop/Neo (por si más adelante queremos "híbridos")
   const popRow = MARKOV_POP[current] ?? {};
   const neoRow = MARKOV_NEO[current] ?? {};
 
-  const result: Record<string, number> = {};
+  const result: MarkovRow = {};
   const degrees = new Set([...Object.keys(popRow), ...Object.keys(neoRow)]);
 
   degrees.forEach((deg) => {

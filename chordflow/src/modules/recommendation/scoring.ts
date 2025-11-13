@@ -11,18 +11,26 @@
 // listo para usar en la UI (SuggestionPanel, etc.).
 // --------------------------------------------------
 
-import { chordNotesFromDegree } from "../theory/roman";
+// ❌ Ya no usamos el motor viejo para análisis
+// import { chordNotesFromDegree } from "../theory/roman";
+
 import { getBerkleeBoost } from "../theory/berklee";
 import { getVoiceLeadingCost } from "./heuristics";
 import { getBlendedMarkovRow } from "./markov";
 import type { Style } from "./markov";
 
+// ✅ Motor teórico nuevo
+import {
+  romanToMidiTriad,
+  type TonalKey,
+  type RomanDegree,
+} from "../theory/roman2";
 
 export interface SuggestionScore {
-  degree: string;         // grado sugerido (I, ii, V, bVII, etc.)
-  score: number;          // score total combinado
-  markovWeight: number;   // peso base de Markov
-  berkleeBoost: number;   // bonus teórico
+  degree: string;           // grado sugerido (I, ii, V, bVII, etc.)
+  score: number;            // score total combinado
+  markovWeight: number;     // peso base de Markov
+  berkleeBoost: number;     // bonus teórico
   voiceLeadingCost: number; // costo por movimiento brusco
 }
 
@@ -31,7 +39,7 @@ export interface SuggestionScore {
  * en una tonalidad y estilo dados.
  *
  * - style: "Pop" | "Neo"
- * - key: tonalidad (C, G, D, F...)
+ * - key: tonalidad (C, G, D, F, ... → mapeada a TonalKey)
  * - currentDegree: grado actual (I, ii, V, etc.)
  * - alpha: mezcla de estilos Pop/Neo (α·Pop + (1–α)·Neo)
  * - limit: cuántas sugerencias devolver (ej. 3)
@@ -52,12 +60,21 @@ export function getScoredSuggestions(params: {
   const entries = Object.entries(row);
   if (!entries.length) return [];
 
-  // 2) Notas del acorde actual (para heurísticas)
-  const fromNotes = chordNotesFromDegree(key, currentDegree);
+  // 🧩 Adaptamos key/degree al motor nuevo (asumimos que vienen bien formados)
+  const tonalKey = (key as TonalKey);
+  const currentDeg = (currentDegree as RomanDegree);
+
+  // 2) Notas del acorde actual (para heurísticas de voice-leading)
+  //    Ahora usamos el motor PRO → triadas en MIDI
+  const fromNotes = romanToMidiTriad(tonalKey, currentDeg);
 
   // 3) Construimos score por candidato
   const scored: SuggestionScore[] = entries.map(([deg, weight]) => {
-    const toNotes = chordNotesFromDegree(key, deg);
+    const targetDeg = deg as RomanDegree;
+
+    // Triada destino en MIDI usando el motor PRO
+    const toNotes = romanToMidiTriad(tonalKey, targetDeg);
+
     const berklee = getBerkleeBoost(currentDegree, deg);
     const vlCost = getVoiceLeadingCost(fromNotes, toNotes);
 

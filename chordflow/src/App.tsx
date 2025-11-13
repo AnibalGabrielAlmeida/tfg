@@ -19,6 +19,15 @@ import type { Style } from "./modules/recommendation/markov";
 import SuggestionPanel from "./components/SuggestionPanel";
 import ChordPool from "./components/ChordPool"; // 👈 ya lo tenías
 
+/*zona de pruebas*/
+
+
+
+
+
+
+
+
 // Tonalidades / estilos
 const KEYS = ["C", "G", "D", "F"] as const;
 const STYLES = ["Pop", "Neo"] as const;
@@ -35,6 +44,10 @@ function App() {
   const [libraryOpen, setLibraryOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [showPresets, setShowPresets] = useState(false);
+
+  //pruebas
+
+
 
   // Progresión
   const {

@@ -41,6 +41,7 @@ const DIATONIC: TheorySet = {
 
 // --------------------------------------------
 // 2) DOMINANTES SECUNDARIOS
+//    (totalmente soportados por romanPro/Markov)
 // --------------------------------------------
 const SECONDARY_DOMS: TheorySet = {
   id: "secondary",
@@ -62,6 +63,7 @@ const SECONDARY_DOMS: TheorySet = {
 
 // --------------------------------------------
 // 3) SUSTITUCIÓN TRITONAL
+//    🔒 FUTURO: por ahora el motor no los reproduce bien
 // --------------------------------------------
 const TRITONE: TheorySet = {
   id: "tritone",
@@ -83,10 +85,11 @@ const TRITONE: TheorySet = {
 
 // --------------------------------------------
 // 4) INTERCAMBIO MODAL
+//    (recortado a lo que romanPro soporta: bIII, bVI, bVII, iv)
 // --------------------------------------------
 const MODAL: TheorySet = {
   id: "modal",
-  label: "Intercambio modal (modo menor/dórico/frigio)",
+  label: "Intercambio modal (modo menor/dórico)",
   groups: [
     {
       name: "Acordes prestados",
@@ -96,9 +99,10 @@ const MODAL: TheorySet = {
         { degree: "bVI" },
         { degree: "bVII" },
         { degree: "iv" },
-        { degree: "i" },
-        { degree: "ii°" },
-        { degree: "bII" }, // frigio
+        // i, ii°, bII quedan para futuro (todavía no soportados)
+        // { degree: "i" },
+        // { degree: "ii°" },
+        // { degree: "bII" },
       ],
     },
   ],
@@ -106,6 +110,7 @@ const MODAL: TheorySet = {
 
 // --------------------------------------------
 // 5) MENOR ARMÓNICA
+//    🔒 FUTURO: V+, iii+, bVI+ no están aún en romanPro
 // --------------------------------------------
 const HARMONIC_MINOR: TheorySet = {
   id: "harmonicMinor",
@@ -124,11 +129,11 @@ const HARMONIC_MINOR: TheorySet = {
   ],
 };
 
-// Exportamos todas las teorías disponibles
+// Exportamos solo lo que está bien soportado por el motor actual
 export const THEORY_SETS: TheorySet[] = [
   DIATONIC,
   SECONDARY_DOMS,
-  TRITONE,
   MODAL,
-  HARMONIC_MINOR,
+  // TRITONE,
+  // HARMONIC_MINOR,
 ];
