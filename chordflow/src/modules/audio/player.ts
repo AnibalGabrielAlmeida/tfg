@@ -118,10 +118,12 @@ export async function scheduleProgression(
 
         // 🎹 Voicings: primer acorde usa drop2, los siguientes hacen voice leading
         let voiced: string[];
-        if (lastVoicing) {
-          voiced = smoothVoiceLeading(lastVoicing, rawNotes);
-        } else {
+        const isLoopStart = startTicks === loopStartTicks;
+
+        if (!lastVoicing || isLoopStart) {
           voiced = applyVoicing(rawNotes, "drop2");
+        } else {
+          voiced = smoothVoiceLeading(lastVoicing, rawNotes);
         }
 
         const durSec = Tone.Ticks(effDurTicks).toSeconds();
