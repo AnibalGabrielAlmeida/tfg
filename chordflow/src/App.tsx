@@ -17,7 +17,7 @@ import { useProgressionManager } from "./modules/progression/useProgressionManag
 import { usePlayback } from "./modules/audio/usePlayback";
 import type { Style } from "./modules/recommendation/markov";
 import SuggestionPanel from "./components/SuggestionPanel";
-import ChordPool from "./components/ChordPool"; // 👈 ya lo tenías
+import ChordPool from "./components/ChordPool";
 
 /*zona de pruebas*/
 
@@ -44,6 +44,8 @@ function App() {
   const [libraryOpen, setLibraryOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [showPresets, setShowPresets] = useState(false);
+  const popPreset = getPopPreset();
+  const neoPreset = getNeoPreset();
 
   //pruebas
 
@@ -233,14 +235,15 @@ function App() {
               aria-label="Cargar preset Pop"
               className="btn btn-primary"
             >
-              Pop (I–V–vi–IV)
+              {popPreset.title}
             </button>
+
             <button
               onClick={handleLoadNeo}
               aria-label="Cargar preset Neo"
               className="btn btn-secondary"
             >
-              Neo-soul (ii–V–I…)
+              {neoPreset.title}
             </button>
           </div>
         )}
