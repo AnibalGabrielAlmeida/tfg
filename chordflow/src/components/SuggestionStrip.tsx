@@ -33,14 +33,14 @@ const SuggestionStrip: React.FC<SuggestionStripProps> = ({
       <div className="suggestion-strip-chips">
         {suggestions.map((s) => (
           <button
-            key={s.degree}
-            type="button"
-            className="chip"
-            onClick={() => onApplySuggestion(s.degree)}
-          >
-            <div style={{ fontWeight: 600 }}>{s.degree}</div>
-            <div style={{ fontSize: 11, opacity: 0.8 }}>{s.explanation}</div>
-          </button>
+  key={s.degree}
+  onClick={() => onApplySuggestion(s.degree)}
+  className="chip"
+>
+  <span style={{ fontWeight: 600 }}>{s.degree}</span>
+  <span style={{ fontSize: 11, opacity: 0.8 }}>{s.explanation}</span>
+</button>
+
         ))}
       </div>
     </section>

@@ -231,18 +231,38 @@ body {
 }
 
 /* Botón tipo chip (sugerencias rápidas) */
+/* Botón tipo chip (sugerencias, pool de acordes) */
 .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
   border-radius: 999px;
-  padding: 4px 10px;
+  padding: 4px 12px;
   font-size: 12px;
-  border: 1px solid var(--color-border);
-  background: var(--color-panel-soft);
+
+  border: 1px solid #4b5563;                /* gris más claro */
+  background: #020617;                      /* casi negro azulado */
+  color: var(--color-text);
+
   cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.12s ease;
 }
 
 .chip:hover {
+  background: #0b1120;
   border-color: var(--color-accent);
+  box-shadow: var(--shadow-soft);
+  transform: translateY(-1px);
+}
+
+.chip:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .chip-active {

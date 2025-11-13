@@ -1,149 +1,154 @@
-// components/ChordPool.tsx
-import { useMemo, useState } from "react";
+import React, { useState } from "react";
+import { THEORY_SETS } from "../modules/theory/theorySets";
 
-type TheoryFilter =
-  | "all"
-  | "diatonic"
-  | "secondary-dominants"
-  | "backdoor"
-  | "tritone-sub"
-  | "modal-interchange";
-
-export type ChordPoolProps = {
-  keyName: string;                    // "C", "G", etc. (por ahora lo usamos informativo)
-  onInsert: (degree: string) => void; // inserta un bloque con ese grado al final (o en cursor)
+// Las escalas existentes (diatónicas mayores)
+const SCALES: Record<string, string[]> = {
+  C: ["C", "D", "E", "F", "G", "A", "B"],
+  G: ["G", "A", "B", "C", "D", "E", "F#"],
+  D: ["D", "E", "F#", "G", "A", "B", "C#"],
+  F: ["F", "G", "A", "Bb", "C", "D", "E"],
 };
 
-const FILTERS: { value: TheoryFilter; label: string }[] = [
-  { value: "all", label: "Todos" },
-  { value: "diatonic", label: "Diatónicos" },
-  { value: "secondary-dominants", label: "2dos dominantes" },
-  { value: "backdoor", label: "Backdoor" },
-  { value: "tritone-sub", label: "Sust. tritonal" },
-  { value: "modal-interchange", label: "Intercambio modal" },
-];
+type ChordPoolProps = {
+  keyName: string;
+  onInsert: (degree: string) => void;
+};
 
-// Mapeo simple de grados por tip teórico (en cifrado romano mayor)
-function degreesFor(filter: TheoryFilter): string[] {
-  switch (filter) {
-    case "diatonic":
-      return ["I", "ii", "iii", "IV", "V", "vi", "vii°"];
-    case "secondary-dominants":
-      // V de cada diatónico (excepto I) – versión simple
-      return ["V/ii", "V/iii", "V/IV", "V/V", "V/vi"];
-    case "backdoor":
-      // Típico: IV7 → I y bVII → I (según estilo)
-      return ["IV7", "bVII"];
-    case "tritone-sub":
-      // Sustituto tritonal de V: ♭II7 (a veces escrito bII7)
-      return ["bII7"];
-    case "modal-interchange":
-      // Prestados del paralelo menor (set frecuente)
-      return ["bIII", "iv", "bVI", "bVII"];
-    case "all":
-    default:
-      return [
-        // Diatónicos
-        "I", "ii", "iii", "IV", "V", "vi", "vii°",
-        // Extras comunes
-        "V/ii", "V/iii", "V/IV", "V/V", "V/vi",
-        "IV7", "bVII", "bII7", "bIII", "iv", "bVI",
-      ];
+// --------------------------------------------------
+// Mapea grados complejos como V/V o bIII → etiqueta real
+// --------------------------------------------------
+
+function getChordLabel(keyName: string, degree: string): string {
+  const scale = SCALES[keyName] ?? SCALES["C"];
+
+  // casos simples (diatónicos)
+  const DEGREE_INDEX: Record<string, number> = {
+    I: 0, ii: 1, iii: 2, IV: 3, V: 4, vi: 5, "vii°": 6,
+  };
+
+  if (DEGREE_INDEX[degree] !== undefined) {
+    const root = scale[DEGREE_INDEX[degree]];
+    if (degree === "ii" || degree === "iii" || degree === "vi") return root + "m";
+    if (degree === "vii°") return root + "dim";
+    return root;
   }
+
+  // MODAL interchange
+  const modalRoots: Record<string, string> = {
+    bIII: "Eb",
+    bVI: "Ab",
+    bVII: "Bb",
+    iv: "Fm",
+    i: "Cm",
+    "ii°": "Ddim",
+    bII: "Db",
+  };
+
+  if (modalRoots[degree]) return modalRoots[degree];
+
+  // Dominantes secundarios
+  const secondary: Record<string, string> = {
+    "V/ii": "A7",
+    "V/iii": "B7",
+    "V/IV": "C7",
+    "V/V": "D7",
+    "V/vi": "E7",
+  };
+
+  if (secondary[degree]) return secondary[degree];
+
+  // Sustitución tritonal
+  const tritone: Record<string, string> =  {
+    "SubV/ii": "Eb7",
+    "SubV/iii": "F7",
+    "SubV/IV": "Gb7",
+    "SubV/V": "Ab7",
+    "SubV/vi": "Bb7",
+  };
+
+  if (tritone[degree]) return tritone[degree];
+
+  // Menor armónica
+  const harmonicMinor: Record<string, string> = {
+    "V+": "G+",
+    "vii°": "Bdim",
+    "iii+": "E+",
+    "bVI+": "Ab+",
+  };
+
+  if (harmonicMinor[degree]) return harmonicMinor[degree];
+
+  return degree;
 }
 
-// Pequeño helper de rol funcional estimado (Mayor)
-function roleOf(degree: string): "T" | "S" | "D" {
-  const t = new Set(["I", "iii", "vi", "bIII", "bVI", "bVII"]);
-  const s = new Set(["ii", "IV", "iv"]);
-  // todo lo que sea dominante/alterado lo agrupamos en D
-  return t.has(degree) ? "T" : s.has(degree) ? "S" : "D";
-}
+// --------------------------------------------------
+// UI principal
+// --------------------------------------------------
 
-export default function ChordPool({ keyName, onInsert }: ChordPoolProps) {
-  const [filter, setFilter] = useState<TheoryFilter>("diatonic");
+const ChordPool: React.FC<ChordPoolProps> = ({ keyName, onInsert }) => {
+  const [theory, setTheory] = useState("diatonic");
 
-  const items = useMemo(() => {
-    const list = degreesFor(filter);
-    return {
-      T: list.filter((d) => roleOf(d) === "T"),
-      S: list.filter((d) => roleOf(d) === "S"),
-      D: list.filter((d) => roleOf(d) === "D"),
-    };
-  }, [filter]);
+  const selectedSet = THEORY_SETS.find((s) => s.id === theory)!;
 
   return (
-    <section className="panel mt-sm">
-      <div className="panel-header">Banco de acordes — {keyName} mayor</div>
-
-      <div className="app-row gap-sm" style={{ justifyContent: "space-between" }}>
-        <label className="text-soft" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          Tip de teoría:
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as TheoryFilter)}
-            className="focus-ring"
-            style={{
-              padding: "4px 8px",
-              border: "1px solid var(--color-border)",
-              borderRadius: "var(--radius-md)",
-              background: "var(--color-panel-soft)",
-              color: "var(--color-text)",
-              fontSize: 13,
-            }}
-          >
-            {FILTERS.map((f) => (
-              <option key={f.value} value={f.value}>{f.label}</option>
-            ))}
-          </select>
-        </label>
+    <section className="panel" style={{ marginTop: 16 }}>
+      <div className="panel-header">
+        Banco de acordes — {selectedSet.label}
       </div>
 
-      <div className="app-row gap-sm mt-xs" style={{ justifyContent: "space-between" }}>
-        {/* Columna T */}
-        <div style={{ flex: 1 }}>
-          <div className="text-soft" style={{ fontSize: 12, marginBottom: 6 }}>
-            <span className="badge-role badge-role--T">T</span> Tónica
-          </div>
-          <div className="pool-group">
-            {items.T.map((d) => (
-              <button key={d} className="chip" onClick={() => onInsert(d)}>
-                {d}
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* Selector de teoría */}
+      <select
+        value={theory}
+        onChange={(e) => setTheory(e.target.value)}
+        style={{
+          marginBottom: 12,
+          padding: "6px 10px",
+          borderRadius: 6,
+          background: "#151821",
+          color: "white",
+        }}
+      >
+        {THEORY_SETS.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.label}
+          </option>
+        ))}
+      </select>
 
-        {/* Columna S */}
-        <div style={{ flex: 1 }}>
-          <div className="text-soft" style={{ fontSize: 12, marginBottom: 6 }}>
-            <span className="badge-role badge-role--S">S</span> Subdominante
-          </div>
-          <div className="pool-group">
-            {items.S.map((d) => (
-              <button key={d} className="chip" onClick={() => onInsert(d)}>
-                {d}
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* Grupos */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {selectedSet.groups.map((group) => (
+          <div key={group.name}>
+            <div style={{ fontSize: 13, marginBottom: 4 }}>
+              <strong>{group.name}</strong>{" "}
+              <span style={{ opacity: 0.7 }}>{group.description}</span>
+            </div>
 
-        {/* Columna D */}
-        <div style={{ flex: 1 }}>
-          <div className="text-soft" style={{ fontSize: 12, marginBottom: 6 }}>
-            <span className="badge-role badge-role--D">D</span> Dominante / Tensión
+            {/* Chips */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {group.degrees.map((d) => {
+                const label = getChordLabel(keyName, d.degree);
+
+                return (
+                  <button
+                    key={d.degree}
+                    className="chip"
+                    onClick={() => onInsert(d.degree)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <strong>{label}</strong>{" "}
+                    <span style={{ fontSize: 11, opacity: 0.7 }}>
+                      ({d.degree})
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <div className="pool-group">
-            {items.D.map((d) => (
-              <button key={d} className="chip" onClick={() => onInsert(d)}>
-                {d}
-              </button>
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
-
-      <div className="note-bar">Tip: podés combinar este banco con las sugerencias Markov/Berklee para explorar y luego refinar.</div>
     </section>
   );
-}
+};
+
+export default ChordPool;

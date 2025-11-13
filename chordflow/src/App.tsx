@@ -261,6 +261,9 @@ function App() {
       {/* 👇 NUEVO: Banco de acordes exploratorio */}
       <ChordPool keyName={key} onInsert={handleInsertFromPool} />
 
+
+        
+
       {/* Warning métrico (si algún compás supera 4 beats) */}
       {barWarnings.length > 0 && (
         <div
