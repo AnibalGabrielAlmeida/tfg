@@ -58,7 +58,13 @@ function App() {
   } = useProgressionManager();
 
   // Playback
-  const { isPlaying, playFromState, stopPlayback, rescheduleOnChange } = usePlayback();
+  const { 
+    isPlaying, 
+    playFromState, 
+    stopPlayback, 
+    rescheduleOnChange,
+    activeBlockId, 
+  } = usePlayback();
 
   // Aplicar una sugerencia concreta (desde SuggestionStrip)
   function applySuggestion(degree: string) {
@@ -212,10 +218,22 @@ return (
     <div className="app-main-layout">
       {/* Columna izquierda: banco + progresión + chips + leyenda */}
       <div className="app-main-left">
+        
+        <div className="progression-track">
+          <ProgressionList
+            progression={progression}
+            activeBlockId={activeBlockId}
+            onReorder={handleReorder}
+            onChangeDuration={updateBlockDuration}
+            onDuplicate={duplicateBlock}
+            onDelete={deleteBlock}
+          />
+        </div>
+        
         {/* Banco de acordes exploratorio */}
         <ChordPool keyName={key} onInsert={handleInsertFromPool} />
 
-        {/* Warning métrico (si algún compás supera 4 beats) */}
+        {/* Warning métrico (si algún compás supera 4 beats) 
         {barWarnings.length > 0 && (
           <div
             role="status"
@@ -230,15 +248,10 @@ return (
             ))}
           </div>
         )}
-
+          */}
         {/* Lista de bloques con DnD */}
-        <ProgressionList
-          progression={progression}
-          onReorder={handleReorder}
-          onChangeDuration={updateBlockDuration}
-          onDuplicate={duplicateBlock}
-          onDelete={deleteBlock}
-        />
+        {/* Pista de progresión con scroll horizontal discreto */}
+        
 
         {/* Tira de sugerencias PRO (chips rápidos) */}
         <SuggestionStrip

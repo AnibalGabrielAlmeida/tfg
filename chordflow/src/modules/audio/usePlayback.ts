@@ -3,20 +3,33 @@
 // 🎧 usePlayback — Control del transporte y audio
 // --------------------------------------------------
 
-import { useState, useCallback } from "react";
-import { play, stop, scheduleProgression, rescheduleAtNextDownbeat } from "./player";
+import { useState, useCallback, useEffect } from "react";
+import {
+  play,
+  stop,
+  scheduleProgression,
+  rescheduleAtNextDownbeat,
+  subscribeActiveBlock,          // 👈 nuevo
+} from "./player";
 import type { ChordBlock } from "../progression/types";
 
 /**
  * Hook que controla el estado de reproducción global.
- * Encapsula play/stop y el reschedule al próximo downbeat.
+ * Encapsula play/stop, highlight del bloque y reschedule.
  */
 export function usePlayback() {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
+
+  // 🔥 Nos suscribimos una sola vez a los cambios de bloque activo
+  useEffect(() => {
+    subscribeActiveBlock((id) => setActiveBlockId(id));
+  }, []);
 
   // Inicia reproducción con el estado actual (progresión + bpm + key)
   const playFromState = useCallback(
     async (progression: ChordBlock[], bpm: number, key: string) => {
+      setActiveBlockId(null);                   // limpiar antes de arrancar
       scheduleProgression(progression, bpm, key);
       await play();
       setIsPlaying(true);
@@ -28,6 +41,7 @@ export function usePlayback() {
   const stopPlayback = useCallback(() => {
     stop();
     setIsPlaying(false);
+    setActiveBlockId(null);                    // limpiar highlight
   }, []);
 
   // Reprograma al próximo downbeat si está sonando
@@ -44,5 +58,6 @@ export function usePlayback() {
     playFromState,
     stopPlayback,
     rescheduleOnChange,
+    activeBlockId,          // 👈 esto va a ProgressionList
   };
 }

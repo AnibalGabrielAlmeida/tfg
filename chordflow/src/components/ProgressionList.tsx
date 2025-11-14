@@ -1,7 +1,9 @@
+// components/ProgressionList.tsx
+import { useEffect, useRef } from "react";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import {
   SortableContext,
-  verticalListSortingStrategy,
+  horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import type { DragEndEvent } from "@dnd-kit/core";
 import type { ChordBlock } from "../modules/progression/types";
@@ -10,6 +12,7 @@ import ProgressionItem from "./ProgressionItem";
 
 export type ProgressionListProps = {
   progression: ChordBlock[];
+  activeBlockId?: string | null;
   onReorder: (activeId: string, overId: string) => void;
   onChangeDuration: (id: string, newBeats: number) => void;
   onDuplicate: (id: string) => void;
@@ -18,8 +21,10 @@ export type ProgressionListProps = {
 
 export default function ProgressionList({
   progression,
+  activeBlockId,
   onReorder,
   onChangeDuration,
+  onDuplicate, // queda para futuro
   onDelete,
 }: ProgressionListProps) {
   const handleDragEnd = (event: DragEndEvent) => {
@@ -28,34 +33,47 @@ export default function ProgressionList({
     onReorder(String(active.id), String(over.id));
   };
 
+  const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
+
+  useEffect(() => {
+    if (!activeBlockId) return;
+    const el = itemRefs.current[activeBlockId];
+    if (el) {
+      el.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+    }
+  }, [activeBlockId]);
+
   return (
     <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext
         items={progression.map((b) => b.id)}
-        strategy={verticalListSortingStrategy}
+        strategy={horizontalListSortingStrategy}
       >
         <ul className="progression-list">
-          {(() => {
-            let beatCursor = 0;
-            return progression.map((block) => {
-              const role = functionalRoleMajor(block.degree);
-              const barIndex = Math.floor(beatCursor / 4);
-              const beatInBar = beatCursor % 4;
-              beatCursor += block.durationBeats;
+          {progression.map((block, index) => {
+            const role = functionalRoleMajor(block.degree);
+            const barIndex = index; // compás = índice + 1
 
-              return (
-                <ProgressionItem
-                  key={block.id}
-                  block={block}
-                  role={role}
-                  barIndex={barIndex}
-                  beatInBar={beatInBar}
-                  onChangeDuration={onChangeDuration}
-                  onDelete={onDelete}
-                />
-              );
-            });
-          })()}
+            return (
+              <ProgressionItem
+                key={block.id}
+                ref={(el) => {
+                  itemRefs.current[block.id] = el;
+                }}
+                block={block}
+                role={role}
+                barIndex={barIndex}
+                beatInBar={0}
+                isActive={block.id === activeBlockId}
+                onChangeDuration={onChangeDuration}
+                onDelete={onDelete}
+              />
+            );
+          })}
         </ul>
       </SortableContext>
     </DndContext>

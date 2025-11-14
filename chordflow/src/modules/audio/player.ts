@@ -35,6 +35,13 @@ let pendingReschedule: number | null = null;
 // último voicing ejecutado (para voice leading)
 let lastVoicing: string[] | null = null;
 
+// 🔥 Listener para saber qué bloque está sonando
+let activeBlockListener: ((id: string | null) => void) | null = null;
+
+function notifyActiveBlock(id: string | null) {
+  if (activeBlockListener) activeBlockListener(id);
+}
+
 // --------------------------------------------------
 // 🛠️ Utilidades
 // --------------------------------------------------
@@ -59,6 +66,14 @@ function humanizeVelocity(): number {
 // --------------------------------------------------
 // ▶️ API pública
 // --------------------------------------------------
+
+// 🔥 Suscripción desde usePlayback para saber el bloque activo
+export function subscribeActiveBlock(
+  listener: (id: string | null) => void
+): void {
+  activeBlockListener = listener;
+}
+
 export async function play() {
   await Tone.start();
   await ensureInstrument();
@@ -68,6 +83,7 @@ export async function play() {
 export function stop() {
   Transport.stop();
   instrument?.releaseAll();
+  notifyActiveBlock(null); // 🔥 limpiamos highlight al frenar
 }
 
 /**
@@ -84,6 +100,7 @@ export async function scheduleProgression(
   const synth = await ensureInstrument();
   clearScheduled();
   lastVoicing = null; // resetear voicing al reprogramar
+  notifyActiveBlock(null); // 🔥 antes de empezar, nada activo
 
   Transport.bpm.rampTo(bpm, 0.05);
 
@@ -114,6 +131,9 @@ export async function scheduleProgression(
 
     const id = Transport.schedule((time) => {
       try {
+        // 🔥 avisamos qué bloque acaba de entrar
+        notifyActiveBlock(b.id);
+
         const rawNotes = chordNotesFromDegree(key, b.degree);
 
         // 🎹 Voicings: primer acorde usa drop2, los siguientes hacen voice leading

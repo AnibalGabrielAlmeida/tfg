@@ -20,7 +20,6 @@ type Props = {
   onSave: () => void;
   onOpenLibrary: () => void;
 
-  // 🔥 nuevas props del menú (versión final)
   onLoadPop: () => void;
   onLoadNeo: () => void;
   onExportJSON: () => void;
@@ -89,10 +88,16 @@ export default function Toolbar({
             ))}
           </select>
         </label>
+
+        {/* Separador visual entre selección y botones */}
+        <span style={{ width: 32, display: "inline-block" }} />
+
+        <button className="btn btn-primary" onClick={onPlay}>Play</button>
+        <button className="btn btn-ghost" onClick={onStop}>Stop</button>
       </div>
 
-      {/* Input + Guardar + Biblioteca */}
-      <div className="toolbar-save">
+      {/* A la derecha: nombre, guardar y biblioteca */}
+      <div className="toolbar-save toolbar-controls-right">
         <input
           className="toolbar-title-input"
           value={title}
@@ -107,12 +112,6 @@ export default function Toolbar({
         <button className="btn btn-ghost" onClick={onOpenLibrary}>
           Biblioteca
         </button>
-      </div>
-
-      {/* Controles a la derecha */}
-      <div className="toolbar-controls">
-        <button className="btn btn-primary" onClick={onPlay}>Play</button>
-        <button className="btn btn-ghost" onClick={onStop}>Stop</button>
 
         {/* Menú de opciones ⋯ */}
         <ToolbarMenu

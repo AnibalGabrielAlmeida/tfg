@@ -59,7 +59,7 @@ const ChordPool: React.FC<ChordPoolProps> = ({ keyName, onInsert }) => {
   const selectedSet = THEORY_SETS.find((s) => s.id === theory)!;
 
   return (
-    <section className="panel" style={{ marginTop: 16 }}>
+    <section className="panel chord-pool">
       <div className="panel-header">
         Banco de acordes — {selectedSet.label}
       </div>

@@ -59,13 +59,12 @@ body {
 }
 
 /* Contenedor principal de la app */
-/* Contenedor principal de la app */
 .app-root {
-  padding: 24px 16px;
+  padding: 24px 32px;   /* antes 24px 16px */
   max-width: 1400px;
-  margin: 0 auto;    
-  /* centra el contenedor */
+  margin: 0 auto;
 }
+
 
 
 
@@ -229,7 +228,6 @@ body {
   font-size: 12px;
 }
 
-/* Botón tipo chip (sugerencias rápidas) */
 /* Botón tipo chip (sugerencias, pool de acordes) */
 .chip {
   display: inline-flex;
@@ -449,49 +447,151 @@ body {
    Progresión (lista + ítems)
    ---------------------------------------- */
 
-.progression-item {
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  color: var(--color-text);
+/* Pista completa: scroll horizontal discreto */
+.progression-track {
+  margin-top: 16px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: #4b5563 transparent;
 }
 
+.progression-track::-webkit-scrollbar {
+  height: 6px;
+}
+
+.progression-track::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.progression-track::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 999px;
+}
+
+.progression-track::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Lista horizontal de bloques */
 .progression-list {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
   list-style: none;
   padding: 0;
-  margin-top: 20px;
-}
-
-/* ----------------------------------------
-   Barra de guardado
-   ---------------------------------------- */
-
-/*
-.savebar {
+  margin: 0;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 12px;
+  align-items: stretch;
 }
 
-.savebar input {
-  flex: 1;
-  padding: 6px 8px;
+/* Bloque de acorde tipo “tarjeta musical” */
+.progression-item {
+  flex: 0 0 170px;         /* ancho base de cada acorde */
+  max-width: 190px;
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 8px;
+
+  padding: 10px 12px;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background: var(--color-panel-soft);
   color: var(--color-text);
-  font-size: 13px;
 }
 
-.savebar input::placeholder {
-  color: var(--color-text-mute);
+/* Zona draggeable principal */
+.progression-item-main {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
 }
-*/
+
+/* Columna izquierda: acorde + función */
+.progression-chord {
+  min-width: 80px;
+}
+
+.progression-degree {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.progression-role {
+  font-size: 12px;
+  opacity: 0.85;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.progression-role-icon {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+/* Derecha: texto de compás dentro del bloque */
+.progression-meter {
+  min-width: 80px;
+  text-align: right;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+/* Acciones (borrar) */
+.progression-actions {
+  display: flex;
+  align-items: center;
+}
+
+/* Colores por rol (T / S / D) */
+.progression-role-T {
+  border-color: rgba(16, 185, 129, 0.7);
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.35);
+}
+
+.progression-role-S {
+  border-color: rgba(129, 140, 248, 0.7);
+  box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.35);
+}
+
+.progression-role-D {
+  border-color: rgba(245, 158, 11, 0.7);
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.35);
+}
+
+/* Acorde activo según función tonal */
+.progression-role-T.progression-item--active {
+  box-shadow:
+    0 0 0 2px var(--color-success),
+    0 0 14px rgba(16, 185, 129, 0.55);
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.progression-role-S.progression-item--active {
+  box-shadow:
+    0 0 0 2px var(--color-subdominant),
+    0 0 14px rgba(129, 140, 248, 0.55);
+  background: rgba(129, 140, 248, 0.12);
+}
+
+.progression-role-D.progression-item--active {
+  box-shadow:
+    0 0 0 2px var(--color-warning),
+    0 0 14px rgba(245, 158, 11, 0.55);
+  background: rgba(245, 158, 11, 0.12);
+}
+/* Línea de compás dentro del bloque */
+.progression-compas {
+  font-size: 11px;
+  opacity: 0.75;
+  margin-top: 2px;
+}
+
+
 
 /* ----------------------------------------
    Utilitarios layout / spacing
@@ -583,17 +683,23 @@ body {
 
 .app-main-layout {
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); /* ~60/40 */
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) 360px; /* izquierda flexible, derecha fija */
+  gap: 20px;                                   /* un poco más de aire entre columnas */
   margin-top: 16px;
   align-items: flex-start;
 }
 
-.app-main-left,
-.app-main-right {
+/* Columna izquierda: timeline + banco + strip + leyenda */
+.app-main-left {
+  min-width: 0;              /* importante para que el scroll horizontal funcione bien */
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* Columna derecha: panel educativo */
+.app-main-right {
+  min-width: 0;
 }
 
 /* En pantallas chicas volvemos a una columna */
@@ -743,4 +849,225 @@ body {
 
 .menu-item:hover {
   background: var(--color-panel-soft);
+}
+
+
+/* Panel derecho educativo */
+.suggestion-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+}
+
+/* Header */
+.suggestion-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.suggestion-panel-header-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.suggestion-panel-tabs {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 999px;
+  background: #020617;
+}
+
+.tab {
+  border: none;
+  background: transparent;
+  color: #e5e7eb;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.tab-active {
+  background: #0f172a;
+}
+
+.suggestion-panel-context {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  font-size: 11px;
+  cursor: default;
+}
+
+/* Lista y cards */
+.suggestion-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.suggestion-card {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #020617;
+  border: 1px solid #111827;
+}
+
+/* Bordes según función tonal */
+.suggestion-card.role-T {
+  border-color: rgba(16, 185, 129, 0.7);    /* verde */
+}
+
+.suggestion-card.role-S {
+  border-color: rgba(129, 140, 248, 0.7);   /* violeta / subdominante */
+}
+
+.suggestion-card.role-D {
+  border-color: rgba(245, 158, 11, 0.7);    /* naranja / dominante */
+}
+
+.suggestion-card-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.suggestion-card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.suggestion-card-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.suggestion-degree {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.suggestion-description {
+  font-size: 12px;
+  color: #e5e7eb;
+}
+
+.suggestion-meta {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* Badges función y tensión */
+.badge-role {
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.badge-role-T {
+  background: rgba(22, 163, 74, 0.15);
+  color: #4ade80;
+}
+
+.badge-role-S {
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+}
+
+.badge-role-D {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+}
+
+.badge-tension {
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: #e5e7eb;
+  background: #020617;
+  border: 1px solid #1f2937;
+}
+
+/* Acciones */
+.suggestion-card-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.icon-button {
+  border: none;
+  background: #020617;
+  border-radius: 999px;
+  width: 26px;
+  height: 26px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* Nota inferior */
+.note-bar {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* Fila principal: editor (izq) + panel derecho */
+.app-main-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px; /* izquierda flexible, derecha fija */
+  gap: 16px;
+  align-items: flex-start;
+  margin-top: 16px;
+}
+
+/* Columna izquierda: timeline + banco + strip + leyenda */
+.app-main-left {
+  min-width: 0; /* importante para que el scroll horizontal funcione bien */
+}
+
+/* Columna derecha: panel educativo */
+.app-main-right {
+  min-width: 0;
+}
+
+/* Evitar que el ChordPool o cualquier panel de la izquierda invada la columna derecha */
+.app-main-left > * {
+  max-width: 100%;
+}
+
+/* Banco de acordes — que no se pegue al panel derecho */
+.chord-pool {
+  margin-top: 16px;
+  max-width: 780px;      /* ↓ probá 780 / 820 / 860 a gusto */
+  margin-right: 12px;
+  box-sizing: border-box;
+}
+
+/* Todo lo que esté en la columna izquierda respeta su ancho */
+.app-main-left > * {
+  width: 100%;
+  max-width: 100%;
 }

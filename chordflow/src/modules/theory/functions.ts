@@ -1,39 +1,46 @@
-// --------------------------------------------------
-// 🎵 ChordFlow — Funciones armónicas (modo mayor)
-// --------------------------------------------------
-// Este módulo asigna a cada grado su función tonal:
-// Tónica (T), Subdominante (S) o Dominante (D).
-// Basado en la teoría tonal clásica (Piston, Schoenberg).
-// --------------------------------------------------
-
-/**
- * Devuelve la función armónica de un grado en modo mayor.
- * Ejemplo:
- *  - "I"  → "T" (tónica)
- *  - "ii" → "S" (subdominante)
- *  - "V"  → "D" (dominante)
- */
 export function functionalRoleMajor(degree: string): "T" | "S" | "D" {
-  // 🎼 Mapeo estándar en tonalidad mayor:
-  // Tónica (T): I, iii, vi  → reposo / estabilidad
-  // Subdominante (S): ii, IV → preparación / transición
-  // Dominante (D): V, vii° → tensión / resolución
+  const base = degree.trim();
 
-  switch (degree) {
-    case "I":
-    case "iii":
-    case "vi":
-      return "T"; // Función tónica — centro de reposo
-
-    case "ii":
-    case "IV":
-      return "S"; // Función subdominante — prepara el movimiento
-
-    case "V":
-    case "vii°":
-      return "D"; // Función dominante — genera tensión
-
-    default:
-      return "T"; // Fallback (por si aparece algo no reconocido)
+  // 1) Dominantes claros: V, V7, V/ii, V/V, V/vi, etc.
+  if (
+    base === "V" ||
+    base.startsWith("V/") ||
+    base.startsWith("V7/") ||
+    base.startsWith("V7") ||
+    base.startsWith("vii°") ||
+    base.startsWith("vii°/")
+  ) {
+    return "D";
   }
+
+  // 2) Subdominantes típicos + modales afines
+  if (
+    base === "ii" ||
+    base.startsWith("ii") ||
+    base === "IV" ||
+    base === "iv" ||
+    base === "bVII" ||
+    base === "bVI"
+  ) {
+    return "S";
+  }
+
+  // 3) Tonales (I, vi, iii y variantes con tensiones)
+  if (
+    base === "I" ||
+    base === "Imaj7" ||
+    base === "I6" ||
+    base === "vi" ||
+    base === "iii"
+  ) {
+    return "T";
+  }
+
+  // 4) Heurísticas suaves para lo raro:
+  if (base.includes("V/")) return "D";          // cualquier V/
+  if (base.startsWith("b")) return "S";        // bII, bIII, bVI, bVII → subdom / color
+  if (base.includes("ii")) return "S";         // ii con adornos
+
+  // Fallback: mejor S que todo tónica
+  return "S";
 }

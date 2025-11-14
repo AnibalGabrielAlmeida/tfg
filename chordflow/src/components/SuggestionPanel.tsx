@@ -1,14 +1,42 @@
+// --------------------------------------------------
+// 🎛️ ChordFlow — SuggestionPanel (vista educativa)
+// --------------------------------------------------
+// Panel lateral tipo "plugin".
+// - Muestra contexto (tonalidad, grado actual, función T/S/D).
+// - Lista sugerencias con color por función.
+// - Indica tensión / resolución de forma simple.
+// - Usa explicaciones de getFullSuggestionExplanation.
+// - Botón 🔊 opcional para pre-escuchar cada sugerencia.
+// --------------------------------------------------
+
 import { useMemo, useState } from "react";
 import type { Style } from "../modules/recommendation/markov";
 import { getScoredSuggestions } from "../modules/recommendation/scoring";
 import { getFullSuggestionExplanation } from "../modules/recommendation/explanations";
 import { functionalRoleMajor } from "../modules/theory/functions";
+import InfoTooltip from "./InfoTooltip";
 
 type Props = {
   style: Style;
   keyName: string;
   currentDegree: string;
   onApplySuggestion: (degree: string) => void;
+  // Opcional: para pre-escuchar la sugerencia sola
+  onPreviewSuggestion?: (degree: string) => void;
+};
+
+type FunctionalRole = "T" | "S" | "D";
+
+const ROLE_LABEL: Record<FunctionalRole, string> = {
+  T: "Tónica",
+  S: "Subdominante",
+  D: "Dominante",
+};
+
+const ROLE_TENSION: Record<FunctionalRole, string> = {
+  T: "Reposo",
+  S: "Transición",
+  D: "Tensión",
 };
 
 export default function SuggestionPanel({
@@ -16,8 +44,9 @@ export default function SuggestionPanel({
   keyName,
   currentDegree,
   onApplySuggestion,
+  onPreviewSuggestion,
 }: Props) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [tab, setTab] = useState<"theory" | "style">("theory");
 
   const suggestions = useMemo(
     () =>
@@ -31,103 +60,134 @@ export default function SuggestionPanel({
     [style, keyName, currentDegree]
   );
 
-  const titleLine = `Recomendaciones para la posición actual — Tonalidad: ${keyName} mayor`;
+  const currentRole = functionalRoleMajor(currentDegree) as FunctionalRole;
 
-  const getFunctionColor = (degree: string) => {
-    const f = functionalRoleMajor(degree);
-    if (f === "T") return "#1e3a8a"; // azul
-    if (f === "S") return "#166534"; // verde
-    return "#7f1d1d"; // dominante / tensión
+  const titleLine = `Contexto: ${keyName} mayor · Grado actual: ${currentDegree}`;
+
+  const getRoleClass = (role: FunctionalRole) => {
+    return `badge-role badge-role-${role}`;
   };
 
   return (
-    <section className="panel suggestion-strip" style={{ fontSize: 13 }}>
-      {/* Header + toggle */}
-      <header
-        className="suggestion-strip-header"
-        style={{ marginBottom: isOpen ? 8 : 0 }}
-      >
-        <span className="suggestion-strip-title">{titleLine}</span>
-        <button
-          type="button"
-          className="btn btn-sm btn-ghost"
-          onClick={() => setIsOpen((v) => !v)}
-        >
-          {isOpen ? "Ocultar explicación" : "Ver explicación"}
-        </button>
+    <section className="panel suggestion-panel">
+      {/* Header: tabs + contexto */}
+      <header className="suggestion-panel-header">
+        <div className="suggestion-panel-header-main">
+          <div className="suggestion-panel-tabs">
+            <button
+              type="button"
+              className={`tab ${tab === "theory" ? "tab-active" : ""}`}
+              onClick={() => setTab("theory")}
+            >
+              Teoría
+            </button>
+            <button
+              type="button"
+              className={`tab ${tab === "style" ? "tab-active" : ""}`}
+              onClick={() => setTab("style")}
+            >
+              Estilo
+            </button>
+          </div>
+
+          <p className="suggestion-panel-context">
+            {titleLine} · Función:{" "}
+            <span className={getRoleClass(currentRole)}>
+              {ROLE_LABEL[currentRole]}
+            </span>
+          </p>
+        </div>
+
+        <InfoTooltip text="Estas sugerencias se basan en la tonalidad y el estilo actual. Usalas para explorar tensión (D), transición (S) y reposo (T) de manera guiada.">
+          <span className="help-icon" aria-label="Ayuda" role="button">
+            ?
+          </span>
+        </InfoTooltip>
       </header>
 
-      {!isOpen && (
-        <p className="text-soft" style={{ marginTop: 4 }}>
-          Usá “Ver explicación” para ver por qué se sugieren estos acordes.
+      {/* Si no hay sugerencias, mensaje breve */}
+      {suggestions.length === 0 && (
+        <p className="text-soft" style={{ fontSize: 12 }}>
+          No hay sugerencias disponibles para este punto de la progresión.
         </p>
       )}
 
-      {isOpen && (
-        <div className="suggestion-strip-list">
-          {suggestions.map((sug) => {
-            const func = functionalRoleMajor(sug.degree);
-            const color = getFunctionColor(sug.degree);
-            const full = getFullSuggestionExplanation({
-              style,
-              fromDegree: currentDegree,
-              toDegree: sug.degree,
-            });
+      {/* Lista de sugerencias */}
+      <div className="suggestion-panel-list">
+        {suggestions.map((sug) => {
+          const role = functionalRoleMajor(sug.degree) as FunctionalRole;
+          const full = getFullSuggestionExplanation({
+            style,
+            fromDegree: currentDegree,
+            toDegree: sug.degree,
+          });
 
-            return (
-              <div
-                key={sug.degree}
-                className="card-suggestion"
-                style={{ borderColor: color }}
-                title={
-                  `${full.full.origin}\n` +
-                  `${full.full.func}\n` +
-                  `${full.full.movement}\n` +
-                  `${full.full.color}\n` +
-                  `${full.full.styleUsage}`
-                }
-              >
-                {/* Columna izquierda: grado + función */}
-                <div style={{ minWidth: 90 }}>
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      marginBottom: 2,
-                      color,
-                    }}
-                  >
-                    {sug.degree}
+          return (
+            <article
+              key={sug.degree}
+              className={`suggestion-card role-${role}`}
+            >
+              {/* Columna principal: grado + función + descripción */}
+              <div className="suggestion-card-main">
+                <div className="suggestion-card-header-row">
+                  <div className="suggestion-card-title">
+                    <span className="suggestion-degree">{sug.degree}</span>
+                    <span className={getRoleClass(role)}>
+                      {ROLE_LABEL[role]}
+                    </span>
                   </div>
-                  <div className="text-soft" style={{ fontSize: 11 }}>
-                    Función: {func}
-                  </div>
+
+                  <span className="badge-tension">
+                    {ROLE_TENSION[role]}
+                  </span>
                 </div>
 
-                {/* Columna central: explicación corta */}
-                <div style={{ flex: 1, fontSize: 12 }}>
-                  {full.short}
-                </div>
+                <p className="suggestion-description">{full.short}</p>
 
-                {/* Columna derecha: botón Insertar */}
-                <div>
+                {/* Línea extra según tab */}
+                {tab === "theory" ? (
+                  <p className="suggestion-meta">
+                    {full.full.func} · {full.full.movement}
+                  </p>
+                ) : (
+                  <p className="suggestion-meta">
+                    {full.full.styleUsage}
+                  </p>
+                )}
+              </div>
+
+              {/* Acciones: preview + insertar */}
+              <div className="suggestion-card-actions">
+                {onPreviewSuggestion && (
                   <button
                     type="button"
-                    className="btn btn-sm btn-primary"
-                    onClick={() => onApplySuggestion(sug.degree)}
+                    className="icon-button"
+                    aria-label="Escuchar sugerencia"
+                    onClick={() => onPreviewSuggestion(sug.degree)}
                   >
-                    Insertar
+                    🔊
                   </button>
-                </div>
-              </div>
-            );
-          })}
+                )}
 
-          <p className="note-bar">
-            Nota: al insertar, el acorde se adapta a la tonalidad y función
-            armónica vigentes.
-          </p>
-        </div>
-      )}
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  onClick={() => onApplySuggestion(sug.degree)}
+                >
+                  Insertar
+                </button>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      {/* Nota educativa al pie */}
+      <p className="note-bar">
+        Recordá la regla funcional básica:{" "}
+        <strong>T → S → D → T</strong>. Probá moverte de la tónica hacia
+        subdominante y dominante para crear tensión, y volver a T para resolver.
+      </p>
     </section>
   );
 }
