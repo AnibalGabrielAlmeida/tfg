@@ -62,7 +62,7 @@ body {
 /* Contenedor principal de la app */
 .app-root {
   padding: 24px 16px;
-  max-width: 1100px;
+  max-width: 1400px;
   margin: 0 auto;    
   /* centra el contenedor */
 }
@@ -127,7 +127,6 @@ body {
 
 /* Alineación interna de paneles dentro del layout centrado */
 .panel,
-.savebar,
 .progression-list,
 .library-list {
   text-align: left;
@@ -299,21 +298,34 @@ body {
    Toolbar global
    ---------------------------------------- */
 
+/* === Toolbar estilo "barra horizontal" tipo mockup === */
 .toolbar {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
+  display: flex;
   align-items: center;
-  margin-bottom: 8px;
+  gap: 16px;
+  padding: 8px 12px;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft);
 }
 
 .toolbar label {
-  font-size: 13px;
-  color: var(--color-text-soft);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-soft);
+  white-space: nowrap;  /* evita que Key, BPM se partan */
 }
+
+.toolbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 16px;    /* separa botones de los selects */
+}
+
 
 .toolbar select,
 .toolbar input {
@@ -325,11 +337,6 @@ body {
   font-size: 13px;
 }
 
-.toolbar-controls {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
 
 /* ----------------------------------------
    SuggestionStrip
@@ -463,6 +470,7 @@ body {
    Barra de guardado
    ---------------------------------------- */
 
+/*
 .savebar {
   display: flex;
   align-items: center;
@@ -483,6 +491,7 @@ body {
 .savebar input::placeholder {
   color: var(--color-text-mute);
 }
+*/
 
 /* ----------------------------------------
    Utilitarios layout / spacing
@@ -566,4 +575,172 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+/* ----------------------------------------
+   Layout principal: editor + panel lateral
+   ---------------------------------------- */
+
+.app-main-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); /* ~60/40 */
+  gap: 16px;
+  margin-top: 16px;
+  align-items: flex-start;
+}
+
+.app-main-left,
+.app-main-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* En pantallas chicas volvemos a una columna */
+@media (max-width: 900px) {
+  .app-main-layout {
+    display: block;
+  }
+
+  .app-main-right {
+    margin-top: 16px;
+  }
+}
+
+/* ----------------------------------------
+   Topbar: título + toolbar
+   ---------------------------------------- */
+
+/* Contenedores laterales de la barra */
+.app-header-left,
+.app-header-right {
+  display: flex;
+  align-items: center;
+}
+
+/* Que el título no deje un hueco abajo */
+.app-header .app-title {
+  margin: 0;             /* pisa el margin-bottom: 12px anterior */
+  font-size: 22px;
+  font-weight: 600;
+}
+
+/* Que el toolbar no empuje nada hacia abajo dentro del header */
+.app-header .toolbar {
+  margin-bottom: 0;
+}
+
+/* Opcional: que el toolbar se pegue a la derecha y no se vea gigante */
+.app-header-right {
+  justify-content: flex-end;
+  flex: 1;
+}
+
+/* ----------------------------------------
+   Topbar nueva — estilo mockup
+---------------------------------------- */
+
+.toolbar-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft);
+
+  padding: 10px 14px;
+  width: 100%;
+}
+
+.toolbar-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  white-space: nowrap;
+  color: var(--color-text);
+}
+
+.toolbar-middle {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.toolbar-middle label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-soft);
+  white-space: nowrap;
+}
+
+.toolbar-middle select,
+.toolbar-middle input {
+  padding: 4px 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-panel-soft);
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.toolbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toolbar-save {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toolbar-title-input {
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-panel-soft);
+  color: var(--color-text);
+  font-size: 13px;
+  width: 180px;
+}
+
+/* --- Toolbar Menu (⋯) --- */
+
+.toolbar-menu-wrapper {
+  position: relative;
+}
+
+.toolbar-menu-panel {
+  position: absolute;
+  top: 36px;
+  right: 0;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft);
+  padding: 6px 0;
+  min-width: 200px;
+  z-index: 40;
+}
+
+.menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 14px;
+  text-align: left;
+  background: transparent;
+  color: var(--color-text);
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.menu-item:hover {
+  background: var(--color-panel-soft);
 }

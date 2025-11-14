@@ -20,7 +20,6 @@ export default function ProgressionList({
   progression,
   onReorder,
   onChangeDuration,
-  onDuplicate,
   onDelete,
 }: ProgressionListProps) {
   const handleDragEnd = (event: DragEndEvent) => {
@@ -52,7 +51,6 @@ export default function ProgressionList({
                   barIndex={barIndex}
                   beatInBar={beatInBar}
                   onChangeDuration={onChangeDuration}
-                  onDuplicate={onDuplicate}
                   onDelete={onDelete}
                 />
               );

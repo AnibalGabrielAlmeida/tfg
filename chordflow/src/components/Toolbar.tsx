@@ -1,15 +1,4 @@
-// --------------------------------------------------
-// 🎚️ ChordFlow — Toolbar (Panel de control global)
-// --------------------------------------------------
-// Contiene los controles principales del proyecto:
-// tonalidad (Key), tempo (BPM), compás (Meter),
-// estilo (Style) y botones de acción (Play, Stop,
-// Agregar bloque, Sugerir siguiente).
-// --------------------------------------------------
-
-// --------------------------------------------------
-// 🎚️ ChordFlow — Toolbar (Panel de control global)
-// --------------------------------------------------
+import ToolbarMenu from "./ToolbarMenu";
 
 type Props = {
   keyValue: string;
@@ -25,8 +14,17 @@ type Props = {
 
   onPlay: () => void;
   onStop: () => void;
-  onAdd: () => void;
-  onSuggest: () => void;
+
+  title: string;
+  onChangeTitle: (s: string) => void;
+  onSave: () => void;
+  onOpenLibrary: () => void;
+
+  // 🔥 nuevas props del menú (versión final)
+  onLoadPop: () => void;
+  onLoadNeo: () => void;
+  onExportJSON: () => void;
+  onImportClick: () => void;
 };
 
 export default function Toolbar({
@@ -40,82 +38,91 @@ export default function Toolbar({
   onChangeStyle,
   onPlay,
   onStop,
-  onAdd,
-  onSuggest,
+
+  title,
+  onChangeTitle,
+  onSave,
+  onOpenLibrary,
+
+  onLoadPop,
+  onLoadNeo,
+  onExportJSON,
+  onImportClick,
 }: Props) {
   return (
-    <div className="panel toolbar">
-      {/* Selector de tonalidad */}
-      <label>
-        Key
-        <select
-          value={keyValue}
-          onChange={(e) => onChangeKey(e.target.value)}
-        >
-          {keys.map((k) => (
-            <option key={k} value={k}>
-              {k}
-            </option>
-          ))}
-        </select>
-      </label>
+    <div className="toolbar-container">
 
-      {/* Control de tempo */}
-      <label>
-        BPM
+      {/* Título de la app */}
+      <h1 className="toolbar-title">ChordFlow — Editor de progresiones</h1>
+
+      {/* Controles centrales */}
+      <div className="toolbar-middle">
+        <label>
+          Key
+          <select value={keyValue} onChange={(e) => onChangeKey(e.target.value)}>
+            {keys.map((k) => (
+              <option key={k} value={k}>{k}</option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          BPM
+          <input
+            type="number"
+            min={60}
+            max={180}
+            value={bpm}
+            onChange={(e) => onChangeBpm(Number(e.target.value))}
+            style={{ width: 70 }}
+          />
+        </label>
+
+        <label>
+          Style
+          <select
+            value={styleValue}
+            onChange={(e) => onChangeStyle(e.target.value)}
+          >
+            {styles.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {/* Input + Guardar + Biblioteca */}
+      <div className="toolbar-save">
         <input
-          type="number"
-          min={60}
-          max={180}
-          step={1}
-          value={bpm}
-          onChange={(e) =>
-            onChangeBpm(parseInt(e.target.value || "0", 10))
-          }
-          style={{ width: 80 }}
+          className="toolbar-title-input"
+          value={title}
+          onChange={(e) => onChangeTitle(e.target.value)}
+          placeholder="Mi progresión…"
         />
-      </label>
 
-      {/* Compás (por ahora fijo en 4/4) */}
-      <label>
-        Meter
-        <input
-          value="4/4"
-          readOnly
-          style={{ width: 60, textAlign: "center" }}
-        />
-      </label>
+        <button className="btn btn-primary" onClick={onSave}>
+          Guardar
+        </button>
 
-      {/* Selector de estilo */}
-      <label>
-        Style
-        <select
-          value={styleValue}
-          onChange={(e) => onChangeStyle(e.target.value)}
-        >
-          {styles.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      {/* Botones de control */}
-      <div className="toolbar-controls">
-        <button className="btn btn-primary" onClick={onPlay}>
-          Play
-        </button>
-        <button className="btn btn-ghost" onClick={onStop}>
-          Stop
-        </button>
-        <button className="btn" onClick={onAdd}>
-          + Bloque
-        </button>
-        <button className="btn" onClick={onSuggest}>
-          Sugerir siguiente ({styleValue})
+        <button className="btn btn-ghost" onClick={onOpenLibrary}>
+          Biblioteca
         </button>
       </div>
+
+      {/* Controles a la derecha */}
+      <div className="toolbar-controls">
+        <button className="btn btn-primary" onClick={onPlay}>Play</button>
+        <button className="btn btn-ghost" onClick={onStop}>Stop</button>
+
+        {/* Menú de opciones ⋯ */}
+        <ToolbarMenu
+          onLoadPop={onLoadPop}
+          onLoadNeo={onLoadNeo}
+          onExportJSON={onExportJSON}
+          onImportClick={onImportClick}
+        />
+      </div>
+
     </div>
   );
 }

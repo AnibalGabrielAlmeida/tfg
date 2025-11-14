@@ -11,7 +11,6 @@ import Toolbar from "./components/Toolbar";
 import InfoTooltip from "./components/InfoTooltip";
 import LibraryPanel from "./components/LibraryPanel";
 import { saveNewPreset } from "./modules/storage/library";
-import SaveBar from "./components/SaveBar";
 import SuggestionStrip from "./components/SuggestionStrip";
 import { useProgressionManager } from "./modules/progression/useProgressionManager";
 import { usePlayback } from "./modules/audio/usePlayback";
@@ -20,12 +19,6 @@ import SuggestionPanel from "./components/SuggestionPanel";
 import ChordPool from "./components/ChordPool";
 
 /*zona de pruebas*/
-
-
-
-
-
-
 
 
 // Tonalidades / estilos
@@ -44,8 +37,6 @@ function App() {
   const [libraryOpen, setLibraryOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [showPresets, setShowPresets] = useState(false);
-  const popPreset = getPopPreset();
-  const neoPreset = getNeoPreset();
 
   //pruebas
 
@@ -77,13 +68,6 @@ function App() {
   // 👇 NUEVO: insertar acordes desde el Pool
   function handleInsertFromPool(degree: string) {
     appendBlockWithDegree(degree as ChordBlock["degree"], 4);
-  }
-
-  // Sugerencia automática por estilo (botón "Sugerir")
-  function suggestAndInsertNext() {
-    const base = lastBlock?.degree ?? "I";
-    const suggested = suggestNextDegree(style, base);
-    appendBlockWithDegree(suggested as ChordBlock["degree"], 4);
   }
 
   // Guardar preset actual
@@ -126,14 +110,6 @@ function App() {
     } else {
       playFromState(p.progression, p.bpm, p.key);
     }
-  }
-
-  function handleLoadPop() {
-    loadPresetAndMaybePlay(getPopPreset());
-  }
-
-  function handleLoadNeo() {
-    loadPresetAndMaybePlay(getNeoPreset());
   }
 
   // Play/Stop desde Toolbar
@@ -198,153 +174,118 @@ function App() {
   // -----------------
   // Render principal
   // -----------------
-  return (
-    <main className="app-root">
-      <h1 className="app-title">ChordFlow — Aprendé armonía creando</h1>
-
-      {/* Panel global (UI separada) */}
-      <Toolbar
+return (
+  <main className="app-root">
+    {/* Topbar: título + toolbar en una sola franja */}
+    <header className="app-header">
+     <Toolbar
         keyValue={key}
         keys={KEYS}
-        onChangeKey={(k: string) => setKey(k as (typeof KEYS)[number])}
+        onChangeKey={(k) => setKey(k as (typeof KEYS)[number])}
+
         bpm={bpm}
         onChangeBpm={setBpm}
+
         styleValue={style}
         styles={STYLES}
-        onChangeStyle={(s: string) => setStyle(s as (typeof STYLES)[number])}
+        onChangeStyle={(s) => setStyle(s as (typeof STYLES)[number])}
+
         onPlay={handlePlay}
         onStop={handleStop}
-        onAdd={addBlock}
-        onSuggest={suggestAndInsertNext}
-      />
 
-      {/* Presets rápidos como desplegable */}
-      <div className="app-row gap-sm mt-xs">
-        <button
-          className="btn btn-ghost btn-sm"
-          type="button"
-          onClick={() => setShowPresets((v) => !v)}
-        >
-          {showPresets ? "Ocultar estilos de ejemplo" : "Cargar estilos de ejemplo"}
-        </button>
-
-        {showPresets && (
-          <div className="app-row gap-sm">
-            <button
-              onClick={handleLoadPop}
-              aria-label="Cargar preset Pop"
-              className="btn btn-primary"
-            >
-              {popPreset.title}
-            </button>
-
-            <button
-              onClick={handleLoadNeo}
-              aria-label="Cargar preset Neo"
-              className="btn btn-secondary"
-            >
-              {neoPreset.title}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Guardar / Biblioteca */}
-      <SaveBar
         title={title}
         onChangeTitle={setTitle}
         onSave={handleSavePreset}
         onOpenLibrary={() => setLibraryOpen(true)}
+
+      
+        onLoadPop={() => loadPresetAndMaybePlay(getPopPreset())}
+        onLoadNeo={() => loadPresetAndMaybePlay(getNeoPreset())}
+        onExportJSON={handleExportJSON}
+        onImportClick={handleImportClick}
       />
 
-      {/* Export / Import JSON */}
-      <div className="app-row gap-sm mt-xs">
-        <button onClick={handleExportJSON} className="btn btn-ghost btn-xs">
-          Exportar biblioteca (JSON)
-        </button>
-        <button onClick={handleImportClick} className="btn btn-ghost btn-xs">
-          Importar biblioteca (JSON)
-        </button>
-        <input
-          type="file"
-          accept="application/json"
-          ref={fileInputRef}
-          style={{ display: "none" }}
-          onChange={handleImportFileChange}
+
+    </header>
+ 
+    {/* 🧱 Layout principal: editor (izq) + teoría/sugerencias (der) */}
+    <div className="app-main-layout">
+      {/* Columna izquierda: banco + progresión + chips + leyenda */}
+      <div className="app-main-left">
+        {/* Banco de acordes exploratorio */}
+        <ChordPool keyName={key} onInsert={handleInsertFromPool} />
+
+        {/* Warning métrico (si algún compás supera 4 beats) */}
+        {barWarnings.length > 0 && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="alert alert-warning mt-sm mb-sm"
+          >
+            <strong>Atención métrica:</strong>
+            {barWarnings.map((w) => (
+              <div key={w.bar}>
+                Compás {w.bar} tiene {w.beats} beats (deberían ser 4).
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Lista de bloques con DnD */}
+        <ProgressionList
+          progression={progression}
+          onReorder={handleReorder}
+          onChangeDuration={updateBlockDuration}
+          onDuplicate={duplicateBlock}
+          onDelete={deleteBlock}
         />
+
+        {/* Tira de sugerencias PRO (chips rápidos) */}
+        <SuggestionStrip
+          style={style as Style}
+          keyName={key}
+          currentDegree={suggestionBaseDegree}
+          onApplySuggestion={applySuggestion}
+        />
+
+        {/* Leyenda con tooltips T/S/D */}
+        <section className="app-legend">
+          <strong>Leyenda:&nbsp;</strong>
+          <InfoTooltip text="Centro de reposo; estabilidad y cierre.">
+            <span className="legend-tag legend-t">T</span>
+          </InfoTooltip>
+          &nbsp;= Tónica,&nbsp;
+          <InfoTooltip text="Prepara el movimiento; puente hacia D o regreso a T.">
+            <span className="legend-tag legend-s">S</span>
+          </InfoTooltip>
+          &nbsp;= Subdominante,&nbsp;
+          <InfoTooltip text="Tensión; empuja a resolver hacia T.">
+            <span className="legend-tag legend-d">D</span>
+          </InfoTooltip>
+          &nbsp;= Dominante.
+        </section>
       </div>
 
-      {/* 👇 NUEVO: Banco de acordes exploratorio */}
-      <ChordPool keyName={key} onInsert={handleInsertFromPool} />
+      {/* Columna derecha: panel de recomendaciones explicadas */}
+      <div className="app-main-right">
+        <SuggestionPanel
+          style={style as Style}
+          keyName={key}
+          currentDegree={suggestionBaseDegree}
+          onApplySuggestion={applySuggestion}
+        />
+      </div>
+    </div>
 
+    {/* Panel de biblioteca (overlay) */}
+    <LibraryPanel
+      open={libraryOpen}
+      onClose={() => setLibraryOpen(false)}
+      onLoadPreset={handleLoadPreset}
+    />
+  </main>
+);
 
-        
-
-      {/* Warning métrico (si algún compás supera 4 beats) */}
-      {barWarnings.length > 0 && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="alert alert-warning mt-sm mb-sm"
-        >
-          <strong>Atención métrica:</strong>
-          {barWarnings.map((w) => (
-            <div key={w.bar}>
-              Compás {w.bar} tiene {w.beats} beats (deberían ser 4).
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Lista de bloques con DnD */}
-      <ProgressionList
-        progression={progression}
-        onReorder={handleReorder}
-        onChangeDuration={updateBlockDuration}
-        onDuplicate={duplicateBlock}
-        onDelete={deleteBlock}
-      />
-
-      {/* Tira de sugerencias PRO */}
-      <SuggestionStrip
-        style={style as Style}
-        keyName={key}
-        currentDegree={suggestionBaseDegree}
-        onApplySuggestion={applySuggestion}
-      />
-
-      <SuggestionPanel
-        style={style as Style}
-        keyName={key}
-        currentDegree={suggestionBaseDegree}
-        onApplySuggestion={applySuggestion}
-      />
-
-      {/* Leyenda con tooltips T/S/D */}
-      <section className="app-legend">
-        <strong>Leyenda:&nbsp;</strong>
-        <InfoTooltip text="Centro de reposo; estabilidad y cierre.">
-          <span className="legend-tag legend-t">T</span>
-        </InfoTooltip>
-        &nbsp;= Tónica,&nbsp;
-        <InfoTooltip text="Prepara el movimiento; puente hacia D o regreso a T.">
-          <span className="legend-tag legend-s">S</span>
-        </InfoTooltip>
-        &nbsp;= Subdominante,&nbsp;
-        <InfoTooltip text="Tensión; empuja a resolver hacia T.">
-          <span className="legend-tag legend-d">D</span>
-        </InfoTooltip>
-        &nbsp;= Dominante.
-      </section>
-
-      {/* Panel de biblioteca */}
-      <LibraryPanel
-        open={libraryOpen}
-        onClose={() => setLibraryOpen(false)}
-        onLoadPreset={handleLoadPreset}
-      />
-    </main>
-  );
 }
 
 export default App;
