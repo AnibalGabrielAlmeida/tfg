@@ -943,6 +943,22 @@ body {
   border-color: rgba(245, 158, 11, 0.7);    /* naranja / dominante */
 }
 
+/* Hover por función tonal */
+.suggestion-card.role-T:hover {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.9);
+}
+
+.suggestion-card.role-S:hover {
+  background: rgba(129, 140, 248, 0.10);
+  border-color: rgba(129, 140, 248, 0.9);
+}
+
+.suggestion-card.role-D:hover {
+  background: rgba(245, 158, 11, 0.10);
+  border-color: rgba(245, 158, 11, 0.9);
+}
+
 .suggestion-card-main {
   flex: 1;
   display: flex;
@@ -952,9 +968,10 @@ body {
 
 .suggestion-card-header-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 6px;              /* ← los junta visualmente */
 }
+
 
 .suggestion-card-title {
   display: flex;
@@ -1015,6 +1032,15 @@ body {
   flex-direction: column;
   justify-content: center;
   gap: 6px;
+}
+
+/* Insert button compact (SuggestionPanel only) */
+.suggestion-card-actions .btn-primary {
+  padding: 2px 8px;
+  font-size: 14px;
+  border-radius: 4px;     /* más cuadrado */
+  height: 32px;           /* altura estándar compacta */
+  min-width: 60px;        /* opcional */
 }
 
 .icon-button {

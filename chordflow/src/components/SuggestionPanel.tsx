@@ -55,7 +55,7 @@ export default function SuggestionPanel({
         key: keyName,
         currentDegree,
         alpha: 1,
-        limit: 4,
+        limit: 3,
       }),
     [style, keyName, currentDegree]
   );
@@ -130,18 +130,10 @@ export default function SuggestionPanel({
               {/* Columna principal: grado + función + descripción */}
               <div className="suggestion-card-main">
                 <div className="suggestion-card-header-row">
-                  <div className="suggestion-card-title">
-                    <span className="suggestion-degree">{sug.degree}</span>
-                    <span className={getRoleClass(role)}>
-                      {ROLE_LABEL[role]}
-                    </span>
-                  </div>
-
-                  <span className="badge-tension">
-                    {ROLE_TENSION[role]}
-                  </span>
+                  <span className="suggestion-degree">{sug.degree}</span>
+                  <span className={getRoleClass(role)}>{ROLE_LABEL[role]}</span>
+                  <span className="badge-tension">{ROLE_TENSION[role]}</span>
                 </div>
-
                 <p className="suggestion-description">{full.short}</p>
 
                 {/* Línea extra según tab */}
@@ -174,7 +166,7 @@ export default function SuggestionPanel({
                   className="btn btn-sm btn-primary"
                   onClick={() => onApplySuggestion(sug.degree)}
                 >
-                  Insertar
+                  Agregar
                 </button>
               </div>
             </article>
