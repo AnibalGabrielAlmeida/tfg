@@ -6,6 +6,7 @@ import {
   type RomanDegree,
 } from "../modules/theory/roman2";
 import { getFullExplanation } from "../modules/recommendation/explanations";
+import { functionalRoleMajor } from "../modules/theory/functions";
 
 type ChordPoolProps = {
   keyName: string;
@@ -68,13 +69,7 @@ const ChordPool: React.FC<ChordPoolProps> = ({ keyName, onInsert }) => {
       <select
         value={theory}
         onChange={(e) => setTheory(e.target.value)}
-        style={{
-          marginBottom: 12,
-          padding: "6px 10px",
-          borderRadius: 6,
-          background: "#151821",
-          color: "white",
-        }}
+        className="chord-pool-select"
       >
         {THEORY_SETS.map((t) => (
           <option key={t.id} value={t.id}>
@@ -84,25 +79,33 @@ const ChordPool: React.FC<ChordPoolProps> = ({ keyName, onInsert }) => {
       </select>
 
       {/* Grupos */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div className="chord-pool-groups">
         {selectedSet.groups.map((group) => (
-          <div key={group.name}>
-            <div style={{ fontSize: 13, marginBottom: 4 }}>
+          <div key={group.name} className="chord-pool-group">
+            <div className="chord-pool-group-title">
               <strong>{group.name}</strong>{" "}
-              <span style={{ opacity: 0.7 }}>{group.description}</span>
+              <span className="text-soft">{group.description}</span>
             </div>
 
             {/* Chips */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <div className="chord-pool-chips">
               {group.degrees.map((d) => {
                 const label = getChordLabel(keyName, d.degree);
                 const full = getFullExplanation(d.degree);
-                 return (
+
+                const rawRole = functionalRoleMajor(d.degree);
+                const role =
+                  rawRole === "T" || rawRole === "S" || rawRole === "D"
+                    ? rawRole
+                    : null;
+
+                return (
                   <button
                     key={d.degree}
-                    className="chip"
+                    className={`chip chord-pool-chip ${
+                      role ? `role-${role}` : ""
+                    }`}
                     onClick={() => onInsert(d.degree)}
-                    style={{ cursor: "pointer" }}
                     title={
                       `${full.origin}\n` +
                       `${full.func}\n` +

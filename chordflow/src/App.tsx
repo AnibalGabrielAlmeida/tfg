@@ -5,13 +5,11 @@ import React, { useState, useRef, useEffect } from "react";
 import { exportLibraryToJSON, importLibraryFromJSON } from "./modules/storage/exporter";
 import type { ChordBlock } from "./modules/progression/types";
 import ProgressionList from "./components/ProgressionList";
-import { suggestNextDegree } from "./modules/recommendation/markov";
 import { getPopPreset, getNeoPreset } from "./modules/presets";
 import Toolbar from "./components/Toolbar";
 import InfoTooltip from "./components/InfoTooltip";
 import LibraryPanel from "./components/LibraryPanel";
 import { saveNewPreset } from "./modules/storage/library";
-import SuggestionStrip from "./components/SuggestionStrip";
 import { useProgressionManager } from "./modules/progression/useProgressionManager";
 import { usePlayback } from "./modules/audio/usePlayback";
 import type { Style } from "./modules/recommendation/markov";
@@ -252,15 +250,6 @@ return (
         {/* Lista de bloques con DnD */}
         {/* Pista de progresión con scroll horizontal discreto */}
         
-
-        {/* Tira de sugerencias PRO (chips rápidos) */}
-        <SuggestionStrip
-          style={style as Style}
-          keyName={key}
-          currentDegree={suggestionBaseDegree}
-          onApplySuggestion={applySuggestion}
-        />
-
         {/* Leyenda con tooltips T/S/D */}
         <section className="app-legend">
           <strong>Leyenda:&nbsp;</strong>

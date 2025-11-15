@@ -234,12 +234,13 @@ body {
   align-items: center;
   gap: 6px;
 
-  border-radius: 999px;
-  padding: 4px 12px;
-  font-size: 12px;
+  border-radius: 10px;       /* un poco menos "píldora" */
+  padding: 8px 14px;         /* más grande */
+  font-size: 13px;
+  min-height: 32px;
 
-  border: 1px solid #4b5563;                /* gris más claro */
-  background: #020617;                      /* casi negro azulado */
+  border: 1px solid #4b5563;
+  background: #020617;
   color: var(--color-text);
 
   cursor: pointer;
@@ -249,6 +250,7 @@ body {
     box-shadow 0.18s ease,
     transform 0.12s ease;
 }
+
 
 .chip:hover {
   background: #0b1120;
@@ -335,41 +337,6 @@ body {
   font-size: 13px;
 }
 
-
-/* ----------------------------------------
-   SuggestionStrip
-   ---------------------------------------- */
-
-.suggestion-strip {
-  margin-top: 16px;
-}
-
-.suggestion-strip-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-  font-size: 13px;
-  color: var(--color-text-soft);
-}
-
-.suggestion-strip-title {
-  font-weight: 500;
-}
-
-.suggestion-strip-chips {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.suggestion-strip-list {
-  margin-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
 /* ----------------------------------------
    Tooltip
    ---------------------------------------- */
@@ -448,13 +415,16 @@ body {
    ---------------------------------------- */
 
 /* Pista completa: scroll horizontal discreto */
+/* Pista completa: scroll horizontal discreto */
 .progression-track {
   margin-top: 16px;
   overflow-x: auto;
-  padding-bottom: 6px;
+  overflow-y: visible;      /* deja salir el glow hacia arriba/abajo */
+  padding: 8px 0 12px;      /* aire arriba (8px) y abajo (12px) */
   scrollbar-width: thin;
   scrollbar-color: #4b5563 transparent;
 }
+
 
 .progression-track::-webkit-scrollbar {
   height: 6px;
@@ -481,22 +451,24 @@ body {
   display: flex;
   gap: 12px;
   align-items: stretch;
+  overflow: visible;
 }
 
 /* Bloque de acorde tipo “tarjeta musical” */
 .progression-item {
-  flex: 0 0 170px;         /* ancho base de cada acorde */
-  max-width: 190px;
+  flex: 0 0 145px;         /* ancho base de cada acorde */
+  max-width: 165px;
   display: flex;
   justify-content: space-between;
   align-items: stretch;
   gap: 8px;
 
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background: var(--color-panel-soft);
   color: var(--color-text);
+  overflow: visible;
 }
 
 /* Zona draggeable principal */
@@ -510,7 +482,7 @@ body {
 
 /* Columna izquierda: acorde + función */
 .progression-chord {
-  min-width: 80px;
+  min-width: 70px;
 }
 
 .progression-degree {
@@ -535,7 +507,7 @@ body {
 
 /* Derecha: texto de compás dentro del bloque */
 .progression-meter {
-  min-width: 80px;
+  min-width: 72px;
   text-align: right;
   font-size: 12px;
   opacity: 0.85;
@@ -681,12 +653,16 @@ body {
    Layout principal: editor + panel lateral
    ---------------------------------------- */
 
+/* ----------------------------------------
+   Layout principal: editor + panel lateral
+   ---------------------------------------- */
+
 .app-main-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px; /* izquierda flexible, derecha fija */
-  gap: 20px;                                   /* un poco más de aire entre columnas */
-  margin-top: 16px;
+  grid-template-columns: 1.2fr 1fr;  /* izquierda ~62%, derecha ~38% */
+  gap: 28px;
   align-items: flex-start;
+  margin-top: 16px;
 }
 
 /* Columna izquierda: timeline + banco + strip + leyenda */
@@ -712,6 +688,13 @@ body {
     margin-top: 16px;
   }
 }
+
+/* Evitar que el contenido de la izquierda invada la derecha */
+.app-main-left > * {
+  width: 100%;
+  max-width: 100%;
+}
+
 
 /* ----------------------------------------
    Topbar: título + toolbar
@@ -879,6 +862,7 @@ body {
   padding: 2px;
   border-radius: 999px;
   background: #020617;
+  max-width: 110px;
 }
 
 .tab {
@@ -1060,40 +1044,90 @@ body {
   color: #9ca3af;
 }
 
-/* Fila principal: editor (izq) + panel derecho */
-.app-main-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px; /* izquierda flexible, derecha fija */
-  gap: 16px;
-  align-items: flex-start;
-  margin-top: 16px;
-}
-
-/* Columna izquierda: timeline + banco + strip + leyenda */
-.app-main-left {
-  min-width: 0; /* importante para que el scroll horizontal funcione bien */
-}
-
-/* Columna derecha: panel educativo */
-.app-main-right {
-  min-width: 0;
-}
-
-/* Evitar que el ChordPool o cualquier panel de la izquierda invada la columna derecha */
-.app-main-left > * {
-  max-width: 100%;
-}
-
 /* Banco de acordes — que no se pegue al panel derecho */
 .chord-pool {
   margin-top: 16px;
-  max-width: 780px;      /* ↓ probá 780 / 820 / 860 a gusto */
+  max-width: 720px;   /* más compacto, no se estira tanto */
   margin-right: 12px;
   box-sizing: border-box;
 }
 
-/* Todo lo que esté en la columna izquierda respeta su ancho */
-.app-main-left > * {
-  width: 100%;
-  max-width: 100%;
+
+/* --- ChordPool layout & groups --- */
+
+.chord-pool-select {
+  margin-bottom: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-panel-soft);
+  color: var(--color-text);
+  font-size: 13px;
 }
+
+.chord-pool-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chord-pool-group {
+  padding-top: 4px;
+  margin-bottom: 10px;      /* más aire entre grupos */
+}
+
+.chord-pool-group-title {
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+/* Contenedor de chips: grid auto-fit para ocupar el ancho */
+.chord-pool-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;                /* aire entre chips */
+  margin-top: 6px;
+}
+
+/* Variante de chip para el banco (hereda de .chip) */
+.chord-pool-chip {
+  font-weight: 600;
+  padding: 12px 20px;       /* más grande y “botón” */
+  font-size: 15px;
+  min-height: 38px;
+}
+
+/* --- Chips del ChordPool según función tonal --- */
+
+.chord-pool-chip.role-T {
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.25);
+}
+
+.chord-pool-chip.role-S {
+  border-color: rgba(129, 140, 248, 0.5);
+  box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.25);
+}
+
+.chord-pool-chip.role-D {
+  border-color: rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.25);
+}
+
+/* Hover por función */
+
+.chord-pool-chip.role-T:hover {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.9);
+}
+
+.chord-pool-chip.role-S:hover {
+  background: rgba(129, 140, 248, 0.12);
+  border-color: rgba(129, 140, 248, 0.9);
+}
+
+.chord-pool-chip.role-D:hover {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.9);
+}
+
