@@ -1,3 +1,20 @@
+// --------------------------------------------------
+// Plataforma Web Interactiva Para La Creación y Exploración De Progresiones Armónicas
+// Componente: ChordPool
+// --------------------------------------------------
+// Panel que presenta un "banco" de acordes organizados por conjuntos
+// teóricos (diatónicos, intercambio modal, dominantes secundarios, etc.).
+// Desde aquí el usuario puede:
+//
+// - Explorar acordes disponibles según la tonalidad seleccionada.
+// - Consultar, vía tooltip/título, una explicación resumida de cada grado.
+// - Insertar grados (en notación romana) en la progresión en construcción.
+//
+// El componente se apoya en THEORY_SETS para definir los grupos de grados
+// disponibles, y utiliza el motor teórico para traducir grados romanos
+// a nombres de acordes concretos (ej.: C + bVII → Bb).
+// --------------------------------------------------
+
 import React, { useState } from "react";
 import { THEORY_SETS } from "../modules/theory/theorySets";
 import {
@@ -9,12 +26,15 @@ import { getFullExplanation } from "../modules/recommendation/explanations";
 import { functionalRoleMajor } from "../modules/theory/functions";
 
 type ChordPoolProps = {
+  /** Tonalidad actual (ej.: "C", "G", "F#") */
   keyName: string;
+
+  /** Callback para insertar un nuevo grado en la progresión activa */
   onInsert: (degree: string) => void;
 };
 
 // ---------------------------------------------
-// Helpers para validar key y grado
+// Helpers para validar tonalidades y grados
 // ---------------------------------------------
 const TONAL_KEYS: TonalKey[] = [
   "C", "C#", "D", "D#", "E",
@@ -25,7 +45,7 @@ function isValidTonalKey(k: string): k is TonalKey {
   return TONAL_KEYS.includes(k as TonalKey);
 }
 
-// OJO: debe coincidir con RomanDegree de romanPro.ts
+// Debe mantenerse consistente con el tipo RomanDegree
 const ROMAN_DEGREES: RomanDegree[] = [
   "I", "ii", "iii", "IV", "V", "vi", "vii°",
   "bIII", "iv", "bVI", "bVII",
@@ -37,23 +57,23 @@ function isValidRomanDegree(d: string): d is RomanDegree {
 }
 
 // --------------------------------------------------
-// Mapea grados como I, ii, V/ii, bVII → etiqueta real
-// usando el motor teórico PRO (romanPro).
+// Mapea grados romanos (I, ii, V/ii, bVII, etc.) a nombres de acorde
+// concretos usando el motor teórico (degreeToChordName).
+// Si el grado o la tonalidad no son válidos, se devuelve el grado tal cual.
 // --------------------------------------------------
 function getChordLabel(keyName: string, degree: string): string {
   if (isValidTonalKey(keyName) && isValidRomanDegree(degree)) {
-    // Usa el motor teórico: C + bVII → Bb, D + ii → Em, etc.
+    // Ejemplos: C + bVII → Bb, D + ii → Em, etc.
     return degreeToChordName(keyName as TonalKey, degree as RomanDegree);
   }
 
-  // Fallback ultra simple si entra algo que no está en RomanDegree
+  // Devolución directa cuando el grado no está contemplado en RomanDegree
   return degree;
 }
 
 // --------------------------------------------------
 // UI principal
 // --------------------------------------------------
-
 const ChordPool: React.FC<ChordPoolProps> = ({ keyName, onInsert }) => {
   const [theory, setTheory] = useState("diatonic");
 
@@ -65,7 +85,7 @@ const ChordPool: React.FC<ChordPoolProps> = ({ keyName, onInsert }) => {
         Banco de acordes — {selectedSet.label}
       </div>
 
-      {/* Selector de teoría */}
+      {/* Selector del conjunto teórico actual */}
       <select
         value={theory}
         onChange={(e) => setTheory(e.target.value)}
@@ -78,7 +98,7 @@ const ChordPool: React.FC<ChordPoolProps> = ({ keyName, onInsert }) => {
         ))}
       </select>
 
-      {/* Grupos */}
+      {/* Grupos de acordes según el conjunto teórico elegido */}
       <div className="chord-pool-groups">
         {selectedSet.groups.map((group) => (
           <div key={group.name} className="chord-pool-group">
@@ -87,7 +107,7 @@ const ChordPool: React.FC<ChordPoolProps> = ({ keyName, onInsert }) => {
               <span className="text-soft">{group.description}</span>
             </div>
 
-            {/* Chips */}
+            {/* Chips individuales de acordes */}
             <div className="chord-pool-chips">
               {group.degrees.map((d) => {
                 const label = getChordLabel(keyName, d.degree);

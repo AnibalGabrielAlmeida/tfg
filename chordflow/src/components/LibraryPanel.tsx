@@ -1,13 +1,16 @@
 // --------------------------------------------------
-// 📚 ChordFlow — Panel de Biblioteca Local
+// Plataforma Web Interactiva Para La Creación y Exploración De Progresiones Armónicas
+// Componente: Panel de Biblioteca Local
 // --------------------------------------------------
-// Este componente muestra los presets guardados en
-// localStorage y permite abrir, duplicar o eliminar.
-// Es un modal flotante con diseño simple.
-// --------------------------------------------------
-
-// --------------------------------------------------
-// 📚 ChordFlow — Panel de Biblioteca Local (con theme global)
+// Componente encargado de mostrar y gestionar los presets guardados
+// en localStorage. Funciona como un panel modal y permite:
+//
+// - Listar progresiones almacenadas por el usuario.
+// - Abrir un preset completo.
+// - Duplicar una progresión guardada.
+// - Eliminar elementos de la biblioteca.
+//
+// Se actualiza automáticamente cada vez que se abre el panel.
 // --------------------------------------------------
 
 import { useEffect, useState } from "react";
@@ -24,16 +27,23 @@ export default function LibraryPanel({
   onClose,
   onLoadPreset,
 }: {
+  /** Controla si el modal está visible */
   open: boolean;
+
+  /** Handler para cerrar el panel */
   onClose: () => void;
+
+  /** Devuelve al componente padre el preset seleccionado */
   onLoadPreset: (p: Preset) => void;
 }) {
   const [items, setItems] = useState<Preset[]>([]);
 
+  /** Recarga la lista desde localStorage */
   function refresh() {
     setItems(listPresets());
   }
 
+  // Refresca la lista cada vez que se abre el panel
   useEffect(() => {
     if (open) refresh();
   }, [open]);
@@ -58,7 +68,7 @@ export default function LibraryPanel({
           <ul className="library-list">
             {items.map((p) => (
               <li key={p.id} className="card library-item">
-                {/* Detalle del preset */}
+                {/* Información del preset */}
                 <div>
                   <div style={{ fontWeight: 600 }}>{p.title}</div>
                   <div className="text-soft" style={{ fontSize: 12 }}>
@@ -67,7 +77,7 @@ export default function LibraryPanel({
                   </div>
                 </div>
 
-                {/* Botones de acción */}
+                {/* Acciones */}
                 <button
                   className="btn btn-sm btn-primary"
                   onClick={() => {
@@ -78,6 +88,7 @@ export default function LibraryPanel({
                 >
                   Abrir
                 </button>
+
                 <button
                   className="btn btn-sm"
                   onClick={() => {
@@ -87,6 +98,7 @@ export default function LibraryPanel({
                 >
                   Duplicar
                 </button>
+
                 <button
                   className="btn btn-sm btn-danger"
                   onClick={() => {

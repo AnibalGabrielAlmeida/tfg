@@ -1,28 +1,77 @@
+// --------------------------------------------------
+// 🎚️ Plataforma Web Interactiva Para La Creación y Exploración De Progresiones Armónicas
+// Componente: Toolbar
+// --------------------------------------------------
+// Barra superior de control de la aplicación. Desde este componente
+// el usuario puede:
+//
+// - Seleccionar tonalidad (Key) y tempo (BPM).
+// - Cambiar el estilo armónico utilizado por el motor de recomendación.
+// - Iniciar y detener la reproducción de la progresión actual.
+// - Asignar un título a la progresión y guardarla en la biblioteca local.
+// - Abrir la biblioteca de progresiones guardadas.
+// - Acceder a acciones avanzadas (cargar presets, exportar/importar JSON)
+//   a través del menú contextual ToolbarMenu.
+//
+// La lógica de reproducción, almacenamiento y presets se delega en el
+// componente padre mediante callbacks.
+// --------------------------------------------------
+
 import ToolbarMenu from "./ToolbarMenu";
 
 type Props = {
+  /** Tonalidad seleccionada (ej.: "C", "G", "F#") */
   keyValue: string;
+
+  /** Lista de tonalidades disponibles en la interfaz */
   keys: readonly string[];
+
+  /** Handler para actualizar la tonalidad seleccionada */
   onChangeKey: (k: string) => void;
 
+  /** Tempo actual en BPM */
   bpm: number;
+
+  /** Handler para actualizar el tempo */
   onChangeBpm: (v: number) => void;
 
+  /** Estilo de sugerencia armónica actualmente seleccionado */
   styleValue: string;
+
+  /** Lista de estilos disponibles (pop, neo-soul, etc.) */
   styles: readonly string[];
+
+  /** Handler para cambiar el estilo activo */
   onChangeStyle: (s: string) => void;
 
+  /** Inicia la reproducción de la progresión actual */
   onPlay: () => void;
+
+  /** Detiene la reproducción en curso */
   onStop: () => void;
 
+  /** Título de la progresión actual */
   title: string;
+
+  /** Handler para actualizar el título de la progresión */
   onChangeTitle: (s: string) => void;
+
+  /** Guarda la progresión en la biblioteca local */
   onSave: () => void;
+
+  /** Abre el panel de biblioteca de progresiones guardadas */
   onOpenLibrary: () => void;
 
+  /** Carga un preset de ejemplo de estilo pop */
   onLoadPop: () => void;
+
+  /** Carga un preset de ejemplo de estilo neo-soul */
   onLoadNeo: () => void;
+
+  /** Exporta la biblioteca de progresiones a un archivo JSON */
   onExportJSON: () => void;
+
+  /** Dispara el flujo de importación desde un archivo JSON */
   onImportClick: () => void;
 };
 
@@ -50,11 +99,10 @@ export default function Toolbar({
 }: Props) {
   return (
     <div className="toolbar-container">
-
       {/* Título de la app */}
       <h1 className="toolbar-title">ChordFlow — Editor de progresiones</h1>
 
-      {/* Controles centrales */}
+      {/* Controles centrales: tonalidad, tempo y estilo */}
       <div className="toolbar-middle">
         <label>
           Key
@@ -89,14 +137,14 @@ export default function Toolbar({
           </select>
         </label>
 
-        {/* Separador visual entre selección y botones */}
+        {/* Separador visual entre selección y botones de reproducción */}
         <span style={{ width: 32, display: "inline-block" }} />
 
         <button className="btn btn-primary" onClick={onPlay}>Play</button>
         <button className="btn btn-ghost" onClick={onStop}>Stop</button>
       </div>
 
-      {/* A la derecha: nombre, guardar y biblioteca */}
+      {/* Lado derecho: nombre de la progresión, guardado y biblioteca */}
       <div className="toolbar-save toolbar-controls-right">
         <input
           className="toolbar-title-input"
@@ -113,7 +161,7 @@ export default function Toolbar({
           Biblioteca
         </button>
 
-        {/* Menú de opciones ⋯ */}
+        {/* Menú de opciones avanzadas (presets, exportación, importación) */}
         <ToolbarMenu
           onLoadPop={onLoadPop}
           onLoadNeo={onLoadNeo}
@@ -121,7 +169,6 @@ export default function Toolbar({
           onImportClick={onImportClick}
         />
       </div>
-
     </div>
   );
 }

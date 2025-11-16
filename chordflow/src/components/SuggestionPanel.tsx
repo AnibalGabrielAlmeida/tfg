@@ -1,12 +1,20 @@
 // --------------------------------------------------
-// 🎛️ ChordFlow — SuggestionPanel (vista educativa)
+// Plataforma Web Interactiva Para La Creación y Exploración De Progresiones Armónicas
+// Componente: SuggestionPanel (vista educativa)
 // --------------------------------------------------
-// Panel lateral tipo "plugin".
-// - Muestra contexto (tonalidad, grado actual, función T/S/D).
-// - Lista sugerencias con color por función.
-// - Indica tensión / resolución de forma simple.
-// - Usa explicaciones de getFullSuggestionExplanation.
-// - Botón 🔊 opcional para pre-escuchar cada sugerencia.
+// Panel lateral que presenta sugerencias de acordes en función de:
+//
+// - La tonalidad seleccionada.
+// - El estilo actual (p. ej. pop, neo-soul, etc.).
+// - El grado actual dentro de la progresión.
+//
+// Muestra información educativa sobre función tonal (T/S/D),
+// nivel de tensión (reposo / transición / tensión) y una breve
+// explicación teórica o estilística para cada sugerencia.
+//
+// Además, expone acciones para:
+// - Agregar la sugerencia a la progresión.
+// - Pre-escuchar una transición sugerida (si se provee onPreviewSuggestion).
 // --------------------------------------------------
 
 import { useMemo, useState } from "react";
@@ -17,22 +25,35 @@ import { functionalRoleMajor } from "../modules/theory/functions";
 import InfoTooltip from "./InfoTooltip";
 
 type Props = {
+  /** Estilo armónico activo (define el comportamiento del motor de recomendación) */
   style: Style;
+
+  /** Tonalidad actual (ej.: "C", "G", "F#") */
   keyName: string;
+
+  /** Grado actual de la progresión (en notación romana) */
   currentDegree: string;
+
+  /** Callback para aplicar la sugerencia seleccionada a la progresión */
   onApplySuggestion: (degree: string) => void;
-  // Opcional: para pre-escuchar la sugerencia sola
+
+  /**
+   * Opcional: callback para pre-escuchar solo la sugerencia
+   * antes de insertarla en la progresión.
+   */
   onPreviewSuggestion?: (degree: string) => void;
 };
 
 type FunctionalRole = "T" | "S" | "D";
 
+// Etiquetas legibles para la función tonal
 const ROLE_LABEL: Record<FunctionalRole, string> = {
   T: "Tónica",
   S: "Subdominante",
   D: "Dominante",
 };
 
+// Etiquetas simplificadas de tensión asociadas a cada función
 const ROLE_TENSION: Record<FunctionalRole, string> = {
   T: "Reposo",
   S: "Transición",
@@ -48,6 +69,7 @@ export default function SuggestionPanel({
 }: Props) {
   const [tab, setTab] = useState<"theory" | "style">("theory");
 
+  // Calcula las sugerencias ponderadas según el estilo, tonalidad y grado actual
   const suggestions = useMemo(
     () =>
       getScoredSuggestions({
@@ -70,7 +92,7 @@ export default function SuggestionPanel({
 
   return (
     <section className="panel suggestion-panel">
-      {/* Header: tabs + contexto */}
+      {/* Encabezado: pestañas + contexto armónico */}
       <header className="suggestion-panel-header">
         <div className="suggestion-panel-header-main">
           <div className="suggestion-panel-tabs">
@@ -105,14 +127,14 @@ export default function SuggestionPanel({
         </InfoTooltip>
       </header>
 
-      {/* Si no hay sugerencias, mensaje breve */}
+      {/* Mensaje en caso de no contar con sugerencias válidas */}
       {suggestions.length === 0 && (
         <p className="text-soft" style={{ fontSize: 12 }}>
           No hay sugerencias disponibles para este punto de la progresión.
         </p>
       )}
 
-      {/* Lista de sugerencias */}
+      {/* Lista de sugerencias generadas por el motor de recomendación */}
       <div className="suggestion-panel-list">
         {suggestions.map((sug) => {
           const role = functionalRoleMajor(sug.degree) as FunctionalRole;
@@ -127,7 +149,7 @@ export default function SuggestionPanel({
               key={sug.degree}
               className={`suggestion-card role-${role}`}
             >
-              {/* Columna principal: grado + función + descripción */}
+              {/* Columna principal: grado, función, nivel de tensión y descripción */}
               <div className="suggestion-card-main">
                 <div className="suggestion-card-header-row">
                   <span className="suggestion-degree">{sug.degree}</span>
@@ -136,7 +158,7 @@ export default function SuggestionPanel({
                 </div>
                 <p className="suggestion-description">{full.short}</p>
 
-                {/* Línea extra según tab */}
+                {/* Línea secundaria según la pestaña activa (teoría/estilo) */}
                 {tab === "theory" ? (
                   <p className="suggestion-meta">
                     {full.full.func} · {full.full.movement}
@@ -148,7 +170,7 @@ export default function SuggestionPanel({
                 )}
               </div>
 
-              {/* Acciones: preview + insertar */}
+              {/* Acciones por sugerencia: pre-escuchar y agregar a la progresión */}
               <div className="suggestion-card-actions">
                 {onPreviewSuggestion && (
                   <button
@@ -174,7 +196,7 @@ export default function SuggestionPanel({
         })}
       </div>
 
-      {/* Nota educativa al pie */}
+      {/* Nota educativa al pie sobre el flujo funcional básico */}
       <p className="note-bar">
         Recordá la regla funcional básica:{" "}
         <strong>T → S → D → T</strong>. Probá moverte de la tónica hacia
