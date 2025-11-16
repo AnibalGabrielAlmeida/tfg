@@ -1,24 +1,35 @@
 // --------------------------------------------------
-// 🧮 ChordFlow — Heurísticas de voice-leading
+// Plataforma Web Interactiva Para La Creación y Exploración De Progresiones Armónicas
+// Módulo: Heurísticas de voice leading
 // --------------------------------------------------
-// Soporta notas como string ("C4") o como número MIDI (60).
-// Internamente todo se convierte a MIDI para medir distancias.
+// Este módulo define utilidades numéricas para evaluar la relación
+// entre acordes a nivel de alturas (voicings). En particular:
+//
+// - Conversión de notas a número MIDI.
+// - Obtención de pitch class ignorando octava.
+// - Cálculo de distancia media entre acordes (en semitonos).
+// - Conteo de pitch classes en común entre dos conjuntos de notas.
+// - Cálculo de un costo de voice leading en función de distancia y notas comunes.
+//
+// Todas las funciones aceptan notas representadas como string ("C4")
+// o como número MIDI (60).
 // --------------------------------------------------
 
 /**
- * Convierte "C4", "F#3", "Bb5" o un número MIDI a número MIDI.
- * C4 = 60.
+ * Convierte una nota representada como string ("C4", "F#3", "Bb5")
+ * o como número MIDI a un valor MIDI numérico.
+ * Convención: C4 = 60.
  */
 export function noteToMidi(note: string | number): number {
-  // 🔹 Si ya viene como número (MIDI), lo usamos directo
+  // Si ya viene como número MIDI, se utiliza directamente
   if (typeof note === "number") {
     return note;
   }
 
-  // 🔹 Si es string, usamos el parser original
+  // Si es string, se parsea con notación de letra + alteración + octava
   const m = note.match(/^([A-G][b#]?)(-?\d+)$/);
   if (!m) {
-    // fallback tosco pero seguro
+    // Fallback seguro en caso de formato no reconocido
     return 60; // C4
   }
   const pc = m[1];
@@ -26,16 +37,21 @@ export function noteToMidi(note: string | number): number {
 
   const PC_MAP: Record<string, number> = {
     C: 0,
-    "C#": 1, Db: 1,
+    "C#": 1,
+    Db: 1,
     D: 2,
-    "D#": 3, Eb: 3,
+    "D#": 3,
+    Eb: 3,
     E: 4,
     F: 5,
-    "F#": 6, Gb: 6,
+    "F#": 6,
+    Gb: 6,
     G: 7,
-    "G#": 8, Ab: 8,
+    "G#": 8,
+    Ab: 8,
     A: 9,
-    "A#": 10, Bb: 10,
+    "A#": 10,
+    Bb: 10,
     B: 11,
   };
 
@@ -45,33 +61,43 @@ export function noteToMidi(note: string | number): number {
 }
 
 /**
- * Devuelve solo la "pitch class" (C, D#, Bb...),
- * ignorando la octava.
- *
- * Soporta string ("C4") o número MIDI (60).
+ * Devuelve únicamente la pitch class (C, D#, Bb, etc.),
+ * ignorando la octava. Soporta notas como string o como
+ * número MIDI.
  */
 export function getPitchClass(note: string | number): string {
-  // Si es número MIDI, usamos modulo 12
+  // Para números MIDI se utiliza el resto módulo 12
   if (typeof note === "number") {
     const midiToPc = [
-      "C", "C#", "D", "D#", "E", "F",
-      "F#", "G", "G#", "A", "A#", "B",
+      "C",
+      "C#",
+      "D",
+      "D#",
+      "E",
+      "F",
+      "F#",
+      "G",
+      "G#",
+      "A",
+      "A#",
+      "B",
     ];
     const idx = ((note % 12) + 12) % 12;
     return midiToPc[idx];
   }
 
-  // Si es string, extraemos la parte de pitch
+  // Para strings se extrae la parte de pitch (sin octava)
   const m = note.match(/^([A-G][b#]?)/);
   return m ? m[1] : "C";
 }
 
 /**
- * Distancia media (en semitonos) entre dos acordes.
- * Tomamos el promedio de las notas de origen y destino
- * y medimos la diferencia entre los centros.
+ * Calcula la distancia media en semitonos entre dos acordes,
+ * entendidos como conjuntos de notas. Para ello:
  *
- * Soporta arrays de strings o de números.
+ * - Convierte cada nota a número MIDI.
+ * - Calcula el promedio de las alturas en cada acorde.
+ * - Devuelve el valor absoluto de la diferencia entre los promedios.
  */
 export function getAverageDistance(
   fromNotes: Array<string | number>,
@@ -92,11 +118,9 @@ export function getAverageDistance(
 }
 
 /**
- * Cuenta cuántas pitch classes tienen en común
- * (sin considerar octava). Ej.: C4–E4–G4 y C3–G3
- * comparten 2 (C y G).
- *
- * Soporta arrays de strings o de números.
+ * Cuenta cuántas pitch classes tienen en común dos acordes,
+ * ignorando la octava. Por ejemplo, C4–E4–G4 y C3–G3
+ * comparten dos pitch classes (C y G).
  */
 export function countCommonPitchClasses(
   fromNotes: Array<string | number>,
@@ -113,17 +137,19 @@ export function countCommonPitchClasses(
 }
 
 /**
- * Calcula un costo de voice-leading:
+ * Calcula un costo de voice leading entre dos acordes a partir de:
  *
- * - Base por distancia media de centros:
- *   - ≤4 semitonos → costo 0
- *   - 4–8          → costo 1
- *   - >8           → costo 2
+ * 1) Distancia media de centros (en semitonos):
+ *    - ≤ 4 semitonos  → costo 0
+ *    - 4–8 semitonos  → costo 1
+ *    - > 8 semitonos  → costo 2
  *
- * - Si hay notas en común:
- *   - restamos 0.5 al costo (mínimo 0).
+ * 2) Notas en común:
+ *    - Si existe al menos una pitch class en común, se resta 0.5
+ *      al costo calculado (sin permitir valores negativos).
  *
- * Soporta arrays de strings o de números.
+ * El resultado es un valor numérico donde 0 indica una conexión
+ * muy suave, y valores mayores indican un movimiento más abrupto.
  */
 export function getVoiceLeadingCost(
   fromNotes: Array<string | number>,
@@ -145,6 +171,6 @@ export function getVoiceLeadingCost(
     cost -= 0.5;
   }
 
-  // nunca negativo
+  // El costo nunca debe ser negativo
   return Math.max(0, cost);
 }

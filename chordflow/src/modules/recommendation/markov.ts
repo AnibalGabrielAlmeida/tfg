@@ -1,14 +1,20 @@
 // --------------------------------------------------
-// 🎵 ChordFlow — Motor de recomendación armónica (Markov)
+// Plataforma Web Interactiva Para La Creación y Exploración De Progresiones Armónicas
+// Módulo: Motor de recomendación armónica (Markov)
 // --------------------------------------------------
-// POP: determinista (top-1)
-// NEO: probabilístico (weighted random)
+// Este módulo implementa un modelo de cadenas de Markov para sugerir
+// el siguiente grado armónico a partir del grado actual, diferenciando
+// entre dos estilos:
 //
-// EXTENSIÓN:
-// - Grados modales: bIII, bVI, bVII, iv
-// - Dominantes secundarios: V/ii, V/iii, V/IV, V/V, V/vi
-// - Fallback por función tonal (T / S / D)
-// - Resolución prioritaria para dominantes secundarios
+// - Pop: comportamiento determinista (selección del grado con mayor peso).
+// - Neo: comportamiento probabilístico (selección ponderada por pesos).
+//
+// Extensiones incluidas:
+// - Grados modales: bIII, bVI, bVII, iv.
+// - Dominantes secundarios: V/ii, V/iii, V/IV, V/V, V/vi.
+// - Fallback por función tonal (T / S / D) cuando falta una fila explícita.
+// - Refuerzo explícito de la resolución de dominantes secundarios.
+// - Penalización de bucles triviales y repeticiones excesivas.
 // --------------------------------------------------
 
 import { functionalRoleMajor } from "../theory/functions";
@@ -16,7 +22,9 @@ import { functionalRoleMajor } from "../theory/functions";
 type MarkovRow = Record<string, number>;
 type MarkovMatrix = Record<string, MarkovRow>;
 
-// ---------- 🎸 POP ----------
+// --------------------------------------------------
+// Matriz Markov para estilo Pop
+// --------------------------------------------------
 const MARKOV_POP: MarkovMatrix = {
   I:      { vi: 3, IV: 2, V: 2, ii: 1, bVII: 1 },
   ii:     { V: 4, "vii°": 1, IV: 1 },
@@ -26,13 +34,13 @@ const MARKOV_POP: MarkovMatrix = {
   vi:     { IV: 3, ii: 2, V: 1, I: 1, bVI: 1 },
   "vii°": { I: 4, V: 2 },
 
-  // Modales
+  // Grados modales
   bVII:   { I: 4, IV: 2, V: 1 },
   bIII:   { IV: 2, vi: 2, bVI: 1, I: 1 },
   bVI:    { IV: 3, V: 2, bIII: 1 },
   iv:     { I: 3, bVII: 2, ii: 1 },
 
-  // 🔥 Dominantes secundarios también en Pop
+  // Dominantes secundarios en Pop
   "V/ii":  { ii: 4, V: 1, I: 1 },
   "V/iii": { iii: 4, vi: 1, I: 1 },
   "V/IV":  { IV: 4, ii: 1, I: 1 },
@@ -40,9 +48,11 @@ const MARKOV_POP: MarkovMatrix = {
   "V/vi":  { vi: 4, IV: 1, I: 1 },
 };
 
-// ---------- 🎹 NEO ----------
+// --------------------------------------------------
+// Matriz Markov para estilo Neo
+// --------------------------------------------------
 const MARKOV_NEO: MarkovMatrix = {
-  // diatónicos enriquecidos
+  // Grados diatónicos enriquecidos
   ii:     { I: 3, IV: 3, V: 2, "vii°": 1, iii: 1, "V/V": 1 },
   I:      { vi: 3, IV: 3, ii: 2, V: 1, iii: 1, bVII: 2, bIII: 1 },
   iii:    { vi: 3, IV: 3, ii: 2, I: 1, bVI: 2 },
@@ -51,13 +61,13 @@ const MARKOV_NEO: MarkovMatrix = {
   vi:     { IV: 3, ii: 3, I: 2, V: 1, iii: 2, bVI: 2 },
   "vii°": { I: 2, V: 2, iii: 2, IV: 1 },
 
-  // modales / intercambio
+  // Modales / intercambio
   bVII:   { I: 3, IV: 3, V: 2, bIII: 2 },
   bIII:   { IV: 3, vi: 2, bVI: 2, I: 1 },
   bVI:    { IV: 3, V: 2, bIII: 2, ii: 1 },
   iv:     { I: 3, bVII: 3, ii: 2, V: 1 },
 
-  // dominantes secundarios
+  // Dominantes secundarios
   "V/ii":  { ii: 4, V: 1, I: 1 },
   "V/iii": { iii: 4, vi: 1, I: 1 },
   "V/IV":  { IV: 4, ii: 1, I: 1 },
@@ -65,13 +75,14 @@ const MARKOV_NEO: MarkovMatrix = {
   "V/vi":  { vi: 4, IV: 1, I: 1 },
 };
 
-// 🎚️ Estilos disponibles
+// Estilos disponibles para el motor
 export type Style = "Pop" | "Neo";
 
 // --------------------------------------------------
-// 🔥 Fallback por función tonal (T / S / D)
+// Fallback por función tonal (T / S / D)
 // --------------------------------------------------
-
+// Cuando un grado no posee fila explícita en la matriz, se recurre
+// a una lista de grados propuesta según la función tonal resultante.
 const FALLBACK_BY_ROLE: Record<Style, Record<"T" | "S" | "D", string[]>> = {
   Pop: {
     T: ["I", "vi", "IV", "ii"],
@@ -85,6 +96,10 @@ const FALLBACK_BY_ROLE: Record<Style, Record<"T" | "S" | "D", string[]>> = {
   },
 };
 
+/**
+ * Obtiene de manera segura la función tonal de un grado (T/S/D).
+ * Si ocurre algún error, se asume Tónica por defecto.
+ */
 function getRoleSafe(degree: string): "T" | "S" | "D" {
   try {
     return functionalRoleMajor(degree);
@@ -93,37 +108,49 @@ function getRoleSafe(degree: string): "T" | "S" | "D" {
   }
 }
 
+/**
+ * Construye una fila de fallback en función del estilo y
+ * de la función tonal del grado actual.
+ */
 function buildFallbackRow(style: Style, current: string): MarkovRow {
   const role = getRoleSafe(current);
   const list = FALLBACK_BY_ROLE[style][role];
   const row: MarkovRow = {};
   const baseWeight = list.length;
   list.forEach((deg, idx) => {
-    row[deg] = baseWeight - idx; // 4,3,2,1...
+    row[deg] = baseWeight - idx; // Secuencia de pesos descendente (4, 3, 2, 1, ...)
   });
   return row;
 }
 
-// Dominante secundario → resolución (V/ii → ii, V/vi → vi, etc.)
+/**
+ * Para un dominante secundario (V/ii, V/vi, etc.) devuelve
+ * su resolución esperada (ii, vi, etc.). Si no es dominante
+ * secundario, devuelve null.
+ */
 function getSecondaryResolution(current: string): string | null {
   const m = current.match(/^V\/(.+)$/);
   if (!m) return null;
   return m[1];
 }
 
-/** Devuelve la fila base (matriz o fallback) y se asegura de que,
- *  si es un dominante secundario, la resolución esté presente
- *  con el peso más alto.
+/**
+ * Devuelve la fila base para el grado actual:
+ * - Usa la matriz Markov correspondiente al estilo si existe.
+ * - Si no hay fila explícita, usa el fallback por función tonal.
+ * - Si el grado es un dominante secundario, refuerza su resolución
+ *   agregando o incrementando el peso de la resolución con el valor
+ *   más alto de la fila.
  */
 function getBaseRow(style: Style, current: string): MarkovRow {
   const matrix = style === "Neo" ? MARKOV_NEO : MARKOV_POP;
   let row = matrix[current];
 
   if (!row || Object.keys(row).length === 0) {
-    // Sin fila explícita → fallback por rol
+    // Sin fila explícita: utilizar fallback por rol
     row = buildFallbackRow(style, current);
   } else {
-    // Tiene fila, pero si es V/ii, V/V, etc., reforzamos la resolución
+    // Fila existente: si es dominante secundario, reforzar resolución
     const res = getSecondaryResolution(current);
     if (res) {
       const maxW = Math.max(...Object.values(row));
@@ -137,15 +164,19 @@ function getBaseRow(style: Style, current: string): MarkovRow {
 }
 
 // --------------------------------------------------
-// 🧠 Estado mínimo para penalizar loops triviales
+// Estado mínimo para penalizar bucles triviales
 // --------------------------------------------------
 let lastSuggested: string | null = null;
 let prevSuggested: string | null = null;
 
 // --------------------------------------------------
-// 🎯 Funciones auxiliares
+// Funciones auxiliares de selección y ranking
 // --------------------------------------------------
 
+/**
+ * Selecciona el grado con mayor peso dentro de la fila.
+ * Si la fila es indefinida, devuelve "V" como valor por defecto.
+ */
 function top1(row?: MarkovRow): string {
   if (!row) return "V";
   let best = "I";
@@ -159,6 +190,10 @@ function top1(row?: MarkovRow): string {
   return best;
 }
 
+/**
+ * Selección aleatoria ponderada según los pesos de la fila.
+ * Si la fila es indefinida, devuelve "V" por defecto.
+ */
 function weightedPick(row?: MarkovRow): string {
   if (!row) return "V";
   const entries = Object.entries(row);
@@ -170,6 +205,12 @@ function weightedPick(row?: MarkovRow): string {
   return entries[0][0];
 }
 
+/**
+ * Aplica penalizaciones a la fila Markov para evitar:
+ * - Rebotar entre dos grados de forma trivial (I → V → I → V...).
+ * - Repetir constantemente la última sugerencia.
+ * - Mantenerse en el mismo grado actual.
+ */
 function applyPenalties(
   row: MarkovRow | undefined,
   current: string
@@ -203,6 +244,10 @@ function applyPenalties(
 
 type RankedSuggestion = { degree: string; weight: number };
 
+/**
+ * Convierte una fila Markov en una lista ordenada de sugerencias
+ * con sus pesos correspondientes, de mayor a menor.
+ */
 function rankRow(row?: MarkovRow): RankedSuggestion[] {
   if (!row) return [];
   return Object.entries(row)
@@ -211,8 +256,17 @@ function rankRow(row?: MarkovRow): RankedSuggestion[] {
 }
 
 // --------------------------------------------------
-// 🧠 Función principal: sugerir siguiente acorde
+// Función principal: sugerir siguiente grado
 // --------------------------------------------------
+
+/**
+ * Sugiere el siguiente grado armónico a partir del grado actual y
+ * el estilo seleccionado. Aplica la matriz base correspondiente,
+ * fallback por rol y penalizaciones de loops triviales.
+ *
+ * - En estilo Pop: se usa la selección determinista (top1).
+ * - En estilo Neo: se utiliza selección ponderada (weightedPick).
+ */
 export function suggestNextDegree(style: Style, current: string): string {
   const baseRow = getBaseRow(style, current);
   const row = applyPenalties(baseRow, current) ?? baseRow;
@@ -229,8 +283,17 @@ export function suggestNextDegree(style: Style, current: string): string {
 }
 
 // --------------------------------------------------
-// 🧪 Top-N sugerencias (panel PRO)
+// Top-N sugerencias para el panel avanzado
 // --------------------------------------------------
+
+/**
+ * Devuelve las N mejores sugerencias ordenadas por peso, pensadas
+ * para alimentar interfaces avanzadas (por ejemplo, paneles de
+ * recomendación donde se muestran múltiples opciones).
+ *
+ * Si el grado actual es un dominante secundario, se fuerza que
+ * su resolución aparezca en primer lugar cuando esté presente.
+ */
 export function suggestNextTopN(
   style: Style,
   current: string,
@@ -240,8 +303,7 @@ export function suggestNextTopN(
   const row = applyPenalties(baseRow, current) ?? baseRow;
   const ranked = rankRow(row);
 
-  // Plus: por seguridad, si es dominante secundario,
-  // volvemos a poner la resolución en primer lugar.
+  // Si es dominante secundario, se asegura que la resolución quede primera
   const resolution = getSecondaryResolution(current);
   if (resolution) {
     const idx = ranked.findIndex((r) => r.degree === resolution);
@@ -255,8 +317,14 @@ export function suggestNextTopN(
 }
 
 // --------------------------------------------------
-// ⚙️ Compatibilidad POP directa
+// Compatibilidad directa con estilo Pop
 // --------------------------------------------------
+
+/**
+ * Versión simplificada que sugiere el siguiente grado utilizando
+ * únicamente la matriz de estilo Pop, manteniendo la lógica de
+ * penalización de loops y fallback por rol.
+ */
 export function suggestNextDegreePop(current: string): string {
   const baseRow = MARKOV_POP[current] ?? buildFallbackRow("Pop", current);
   const row = applyPenalties(baseRow, current) ?? baseRow;
@@ -267,8 +335,20 @@ export function suggestNextDegreePop(current: string): string {
 }
 
 // --------------------------------------------------
-// 🔀 PRO: mezcla de estilos (α·Pop + (1–α)·Neo)
+// Mezcla de estilos: combinación Pop/Neo mediante alpha
 // --------------------------------------------------
+
+/**
+ * Devuelve una fila Markov "mezclada" a partir de Pop y Neo según
+ * un parámetro alpha:
+ *
+ * - alpha = 1   → se usa solamente Pop.
+ * - alpha = 0   → se usa solamente Neo.
+ * - valores intermedios → combinación lineal de ambas matrices.
+ *
+ * Si no existen filas explícitas para el grado en ninguno de los
+ * estilos, se recurre al fallback por función tonal.
+ */
 export function getBlendedMarkovRow(
   style: Style,
   current: string,

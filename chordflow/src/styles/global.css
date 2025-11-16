@@ -1,5 +1,29 @@
+/* --------------------------------------------------
+   Plataforma Web Interactiva Para La Creación y Exploración De Progresiones Armónicas
+   Módulo: global.css (tema visual y layout base)
+   --------------------------------------------------
+   Este archivo define el estilo global del prototipo:
+
+   - Variables de color, tipografía, radios y sombras para toda la interfaz.
+   - Reseteo y configuración base de html, body y el contenedor .app-root.
+   - Layout principal de la aplicación (app-main-layout) que organiza:
+       • Columna izquierda: pista de progresión, banco de acordes y leyenda.
+       • Columna derecha: panel educativo de sugerencias (SuggestionPanel).
+   - Estilos específicos de componentes clave:
+       • Toolbar superior (Toolbar y ToolbarMenu).
+       • Lista de bloques de progresión (ProgressionList y sus ítems).
+       • Panel de sugerencias, biblioteca modal, pool de acordes y leyendas T/S/D.
+   - Reglas de accesibilidad visual (focus rings) y comportamiento responsive
+     para pantallas más pequeñas.
+
+   En la arquitectura del TFG este módulo actúa como capa de presentación
+   compartida: garantiza que todos los componentes React (Toolbar, ProgressionList,
+   ChordPool, SuggestionPanel, LibraryPanel) se integren en una misma identidad
+   visual coherente con el mockup de alta fidelidad.
+   -------------------------------------------------- */
+
 /* ----------------------------------------
-   🎨 ChordFlow — Theme global
+   Theme global
    ---------------------------------------- */
 
 :root {
@@ -64,9 +88,6 @@ body {
   max-width: 1400px;
   margin: 0 auto;
 }
-
-
-
 
 /* Título principal */
 .app-title {
@@ -251,7 +272,6 @@ body {
     transform 0.12s ease;
 }
 
-
 .chip:hover {
   background: #0b1120;
   border-color: var(--color-accent);
@@ -325,7 +345,6 @@ body {
   gap: 8px;
   margin-left: 16px;    /* separa botones de los selects */
 }
-
 
 .toolbar select,
 .toolbar input {
@@ -415,7 +434,6 @@ body {
    ---------------------------------------- */
 
 /* Pista completa: scroll horizontal discreto */
-/* Pista completa: scroll horizontal discreto */
 .progression-track {
   margin-top: 16px;
   overflow-x: auto;
@@ -424,7 +442,6 @@ body {
   scrollbar-width: thin;
   scrollbar-color: #4b5563 transparent;
 }
-
 
 .progression-track::-webkit-scrollbar {
   height: 6px;
@@ -556,14 +573,13 @@ body {
     0 0 14px rgba(245, 158, 11, 0.55);
   background: rgba(245, 158, 11, 0.12);
 }
+
 /* Línea de compás dentro del bloque */
 .progression-compas {
   font-size: 11px;
   opacity: 0.75;
   margin-top: 2px;
 }
-
-
 
 /* ----------------------------------------
    Utilitarios layout / spacing
@@ -653,10 +669,6 @@ body {
    Layout principal: editor + panel lateral
    ---------------------------------------- */
 
-/* ----------------------------------------
-   Layout principal: editor + panel lateral
-   ---------------------------------------- */
-
 .app-main-layout {
   display: grid;
   grid-template-columns: 1.2fr 1fr;  /* izquierda ~62%, derecha ~38% */
@@ -695,7 +707,6 @@ body {
   max-width: 100%;
 }
 
-
 /* ----------------------------------------
    Topbar: título + toolbar
    ---------------------------------------- */
@@ -727,7 +738,7 @@ body {
 
 /* ----------------------------------------
    Topbar nueva — estilo mockup
----------------------------------------- */
+   ---------------------------------------- */
 
 .toolbar-container {
   display: flex;
@@ -833,7 +844,6 @@ body {
 .menu-item:hover {
   background: var(--color-panel-soft);
 }
-
 
 /* Panel derecho educativo */
 .suggestion-panel {
@@ -956,7 +966,6 @@ body {
   gap: 6px;              /* ← los junta visualmente */
 }
 
-
 .suggestion-card-title {
   display: flex;
   align-items: center;
@@ -1052,7 +1061,6 @@ body {
   box-sizing: border-box;
 }
 
-
 /* --- ChordPool layout & groups --- */
 
 .chord-pool-select {
@@ -1130,4 +1138,3 @@ body {
   background: rgba(245, 158, 11, 0.12);
   border-color: rgba(245, 158, 11, 0.9);
 }
-

@@ -1,22 +1,31 @@
 // --------------------------------------------------
-// 🎹 ChordFlow — Voicings (drop-2 + voice leading)
+// Plataforma Web Interactiva Para La Creación y Exploración De Progresiones Armónicas
+// Módulo: Voicings (drop-2 y voice leading suave)
 // --------------------------------------------------
-// - drop2(): baja la 2ª voz desde arriba una octava
-// - smoothVoiceLeading(): agrupa el siguiente acorde
-//   cerca del anterior (cluster suave)
+// Este módulo define utilidades para generar voicings de acordes
+// y suavizar el movimiento entre ellos:
+//
+// - drop2(): aplica la técnica clásica de drop-2 sobre una triada
+//   o acorde cerrado, bajando la segunda voz más aguda una octava.
+// - smoothVoiceLeading(): ajusta el siguiente acorde para que quede
+//   próximo al anterior, favoreciendo un "cluster" compacto y un
+//   voice leading más suave.
+//
+// Se trabaja con nombres de nota tipo "C4", "F#3", etc., y se
+// convierte internamente a número MIDI para poder comparar alturas.
 // --------------------------------------------------
 
-/** Modos de voicing disponibles (para futuro) */
+/** Modos de voicing disponibles (extensible a futuro). */
 export type VoicingMode = "closed" | "drop2";
 
-/** Nota parseada: pitch class + octave + midi */
+/** Representación interna de una nota: pitch class, octava y valor MIDI. */
 type ParsedNote = {
   pc: string;
   octave: number;
   midi: number;
 };
 
-// Mapeo simple de pc → semitonos (C=0)
+// Mapeo simple de pitch class → semitonos (C = 0)
 const PC_MAP: Record<string, number> = {
   C: 0,
   "C#": 1, Db: 1,
@@ -32,10 +41,15 @@ const PC_MAP: Record<string, number> = {
   B: 11,
 };
 
+/**
+ * Convierte una nota textual (por ejemplo "C4", "F#3") a su
+ * representación interna con pitch class, octava y valor MIDI.
+ * En caso de no poder parsear, devuelve un valor por defecto (C4).
+ */
 function parseNote(note: string): ParsedNote {
   const m = note.match(/^([A-G][b#]?)(\d)$/);
   if (!m) {
-    // fallback tosco: C4
+    // Fallback simple y seguro
     return { pc: "C", octave: 4, midi: 60 };
   }
   const pc = m[1];
@@ -45,39 +59,53 @@ function parseNote(note: string): ParsedNote {
   return { pc, octave, midi };
 }
 
+/**
+ * Reconstruye una nota textual a partir de la pitch class y el
+ * valor MIDI, calculando la octava correspondiente.
+ */
 function toNote(pc: string, midi: number): string {
-  // reconstruimos octave desde midi
   const octave = Math.floor(midi / 12) - 1;
   return `${pc}${octave}`;
 }
 
-/** Ordena notas de grave a agudo */
+/**
+ * Ordena una lista de notas (texto) de grave a agudo utilizando
+ * su valor MIDI como referencia.
+ */
 function sortByPitch(notes: string[]): ParsedNote[] {
   return notes.map(parseNote).sort((a, b) => a.midi - b.midi);
 }
 
 /**
- * drop-2: baja la segunda voz más aguda una octava
- * (si hay menos de 3 notas, devuelve igual)
+ * Aplica el voicing drop-2: toma el acorde ordenado de grave a agudo
+ * y baja una octava la segunda voz más aguda.
+ *
+ * Si el acorde tiene menos de tres notas, se devuelve una copia sin cambios.
  */
 export function drop2(notes: string[]): string[] {
   if (notes.length < 3) return notes.slice();
 
   const parsed = sortByPitch(notes);
-  const idx = parsed.length - 2; // 2ª voz desde arriba
+  const idx = parsed.length - 2; // segunda voz desde arriba
   parsed[idx] = {
     ...parsed[idx],
     midi: parsed[idx].midi - 12,
   };
 
-  // reordenar de grave a agudo
+  // Reordenar de grave a agudo tras el desplazamiento
   const reSorted = [...parsed].sort((a, b) => a.midi - b.midi);
   return reSorted.map((n) => toNote(n.pc, n.midi));
 }
 
 /**
- * Ajusta el siguiente acorde cerca del anterior
- * manteniendo un cluster suave (voice leading).
+ * Genera un voicing suave para el siguiente acorde a partir del
+ * acorde anterior, manteniendo las notas próximas en altura.
+ *
+ * Estrategia:
+ * - Calcula el centro de alturas del acorde anterior (promedio MIDI).
+ * - Para cada nota del nuevo acorde, busca la octava más cercana a ese
+ *   centro, probando desplazamientos de hasta ±2 octavas.
+ * - Devuelve el resultado ordenado de grave a agudo.
  */
 export function smoothVoiceLeading(
   prev: string[],
@@ -92,12 +120,12 @@ export function smoothVoiceLeading(
   const avgPrev =
     prevParsed.reduce((sum, n) => sum + n.midi, 0) / prevParsed.length;
 
-  // Para cada nota del siguiente, buscamos la octava más cercana al cluster anterior
+  // Para cada nota del siguiente acorde se busca la octava más cercana
   const voiced = nextParsed.map((n) => {
     let bestMidi = n.midi;
     let bestDist = Math.abs(n.midi - avgPrev);
 
-    // probamos desplazamientos de ±2 octavas
+    // Probar desplazamientos de ±2 octavas
     for (let k = -2; k <= 2; k++) {
       const candidate = n.midi + 12 * k;
       const dist = Math.abs(candidate - avgPrev);
@@ -109,14 +137,19 @@ export function smoothVoiceLeading(
     return { ...n, midi: bestMidi };
   });
 
-  // Ordenar y devolver
   const reSorted = voiced.sort((a, b) => a.midi - b.midi);
   return reSorted.map((n) => toNote(n.pc, n.midi));
 }
 
 /**
- * Aplicador genérico de voicing (para crecer después).
- * Por ahora usamos closed (tal cual) o drop2.
+ * Aplicador genérico de voicing.
+ *
+ * Por ahora admite:
+ * - "closed": devuelve el acorde tal como llega.
+ * - "drop2": aplica la transformación de drop-2 definida arriba.
+ *
+ * El diseño del tipo VoicingMode permite incorporar más variantes
+ * en futuras extensiones (por ejemplo, drop-3, inversiones, etc.).
  */
 export function applyVoicing(
   notes: string[],

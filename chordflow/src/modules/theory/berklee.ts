@@ -1,19 +1,19 @@
 // --------------------------------------------------
-// 🎓 ChordFlow — Reglas Berklee / armonía moderna
+// Plataforma Web Interactiva Para La Creación y Exploración De Progresiones Armónicas
+// Módulo: Reglas Berklee / armonía moderna
 // --------------------------------------------------
-// Este módulo NO reemplaza al Markov, sino que lo
-// complementa con "boosts" teóricos para ciertas
-// transiciones típicas de la armonía moderna:
+// Este módulo no reemplaza al modelo Markov, sino que lo complementa
+// mediante "boosts" teóricos para ciertos movimientos típicos de la
+// armonía funcional y moderna. Estos refuerzos se utilizan para:
 //
-// - Cadencias ii–V–I
-// - Dominantes secundarios (V/ii, V/vi, etc.)
-// - Sustituto tritonal (♭II7 → I)
-// - Backdoor (IVm7 → I, ♭VII → I)
-// - Intercambio modal (♭III, ♭VI, ♭VII → I/V)
+// - Cadencias ii–V–I y IV–V–I.
+// - Dominantes secundarios (V/ii, V/vi, V/V, etc.).
+// - Sustituto tritonal (♭II7 → I).
+// - Resoluciones backdoor (IVm7 → I, ♭VII → I).
+// - Intercambio modal (♭III, ♭VI, ♭VII hacia I o V).
 //
-// La idea es que el motor de recomendaciones pueda
-// sumar estos boosts al score base de Markov y luego
-// generar explicaciones cortas en la UI.
+// La idea es que el motor de recomendación pueda sumar estos boosts
+// al score base de Markov y además ofrecer explicaciones breves en la UI.
 // --------------------------------------------------
 
 export type BerkleeTag =
@@ -25,19 +25,28 @@ export type BerkleeTag =
   | "other";
 
 export interface BerkleeRule {
-  from: string;         // grado origen (ej. "ii", "V/ii", "bVII", "bII7")
-  to: string;           // grado destino
-  boost: number;        // cuánto suma al score (0..3 aprox)
-  tag: BerkleeTag;      // tipo de recurso
-  description: string;  // breve explicación (para UI)
+  /** Grado de origen (por ejemplo: "ii", "V/ii", "bVII", "bII7"). */
+  from: string;
+
+  /** Grado de destino de la progresión. */
+  to: string;
+
+  /** Cantidad que se suma al score total (rango orientativo 0..3). */
+  boost: number;
+
+  /** Etiqueta que clasifica el tipo de recurso armónico utilizado. */
+  tag: BerkleeTag;
+
+  /** Descripción breve en texto natural, pensada para la interfaz. */
+  description: string;
 }
 
 // --------------------------------------------------
-// 🧾 Reglas básicas (pueden ampliarse después)
+// Conjunto base de reglas Berklee (ampliable)
 // --------------------------------------------------
 
 const RULES: BerkleeRule[] = [
-  // --- Cadencias funcionales mayores ---
+  // --- Cadencias funcionales en modo mayor ---
   {
     from: "ii",
     to: "V",
@@ -92,7 +101,7 @@ const RULES: BerkleeRule[] = [
     description: "♭II7 sustituye a V7 (sustituto tritonal hacia I)",
   },
 
-  // --- Backdoor resolutions ---
+  // --- Resoluciones backdoor ---
   {
     from: "IVm",
     to: "I",
@@ -115,7 +124,7 @@ const RULES: BerkleeRule[] = [
     description: "♭VII → I (resolución backdoor / mixolidia)",
   },
 
-  // --- Intercambio modal (prestados de la paralela) ---
+  // --- Intercambio modal (acordes prestados de la paralela) ---
   {
     from: "bVI",
     to: "I",
@@ -135,45 +144,51 @@ const RULES: BerkleeRule[] = [
     to: "V",
     boost: 1.2,
     tag: "modalInterchange",
-    description: "♭VII → V (movimiento modal típico rock / pop)",
+    description: "♭VII → V (movimiento modal típico de rock / pop)",
   },
 ];
 
 // --------------------------------------------------
-// 🧮 API pública
+// API pública
 // --------------------------------------------------
 
 /**
- * Devuelve el boost numérico recomendado para la
- * transición from→to según las reglas Berklee.
+ * Devuelve el valor numérico de boost recomendado para la transición
+ * from → to según las reglas Berklee definidas.
  *
- * Si no hay regla, devuelve 0 (sin bonificación).
+ * Si no existe ninguna regla para la combinación dada, devuelve 0.
  */
 export function getBerkleeBoost(from: string, to: string): number {
   const matches = RULES.filter((r) => r.from === from && r.to === to);
   if (!matches.length) return 0;
 
-  // Podríamos sumar; por ahora usamos el máximo para evitar exagerar
+  // En lugar de sumar todos los boosts, se utiliza el máximo
+  // para evitar una ponderación excesiva de una misma transición.
   return Math.max(...matches.map((r) => r.boost));
 }
 
 /**
- * Devuelve la(s) regla(s) que aplican a la transición
- * from→to. Útil para UI y explicaciones.
+ * Devuelve todas las reglas que aplican a la transición from → to.
+ * Resulta útil para construir explicaciones más detalladas en la UI.
  */
 export function getBerkleeRules(from: string, to: string): BerkleeRule[] {
   return RULES.filter((r) => r.from === from && r.to === to);
 }
 
 /**
- * Atajo para obtener una explicación corta prioritaria,
- * si existe alguna regla Berklee para from→to.
+ * Devuelve una explicación breve prioritaria para la transición
+ * from → to, en caso de existir alguna regla Berklee asociada.
+ *
+ * Si no se encuentra ninguna regla, devuelve null.
  */
 export function getBerkleeExplanation(from: string, to: string): string | null {
   const rules = getBerkleeRules(from, to);
   if (!rules.length) return null;
 
-  // Podríamos priorizar por tag; por ahora tomamos la de mayor boost
-  const best = rules.reduce((acc, r) => (r.boost > acc.boost ? r : acc), rules[0]);
+  // Se prioriza la regla con mayor boost como explicación principal.
+  const best = rules.reduce(
+    (acc, r) => (r.boost > acc.boost ? r : acc),
+    rules[0]
+  );
   return best.description;
 }

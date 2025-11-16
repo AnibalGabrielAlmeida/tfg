@@ -1,6 +1,25 @@
-// --------------------------------------
-// 🎵 ChordFlow — Prototipo Interactivo
-// --------------------------------------
+// --------------------------------------------------
+// Plataforma Web Interactiva Para La Creación y Exploración De Progresiones Armónicas
+// Módulo: App principal (capa de orquestación UI + lógica de control)
+// --------------------------------------------------
+// Este componente actúa como punto de entrada del prototipo interactivo:
+//
+// - Mantiene el estado global de la sesión (tonalidad, BPM, estilo, título).
+// - Orquesta la progresión armónica mediante useProgressionManager.
+// - Controla la reproducción de audio mediante usePlayback (Tone.js).
+// - Expone acciones de guardado/carga a la biblioteca local.
+// - Coordina la interacción entre:
+//
+//   • Toolbar (controles globales)
+//   • ProgressionList (edición y orden de bloques)
+//   • ChordPool (banco de acordes por sistema teórico)
+//   • SuggestionPanel (recomendaciones explicadas)
+//   • LibraryPanel (gestión de presets en localStorage)
+//
+// La lógica de dominio (recomendaciones, teoría, audio) se mantiene en
+// módulos separados; App se limita a componerlos y gestionar el flujo.
+// --------------------------------------------------
+
 import React, { useState, useRef, useEffect } from "react";
 import { exportLibraryToJSON, importLibraryFromJSON } from "./modules/storage/exporter";
 import type { ChordBlock } from "./modules/progression/types";
@@ -16,18 +35,15 @@ import type { Style } from "./modules/recommendation/markov";
 import SuggestionPanel from "./components/SuggestionPanel";
 import ChordPool from "./components/ChordPool";
 
-/*zona de pruebas*/
-
-
-// Tonalidades / estilos
+// Tonalidades y estilos disponibles en el prototipo
 const KEYS = ["C", "G", "D", "F"] as const;
 const STYLES = ["Pop", "Neo"] as const;
 
 // -----------------------------
-// App principal
+// Componente de aplicación principal
 // -----------------------------
 function App() {
-  // Controles globales
+  // Controles globales de la sesión
   const [key, setKey] = useState<(typeof KEYS)[number]>("C");
   const [bpm, setBpm] = useState(100);
   const [style, setStyle] = useState<(typeof STYLES)[number]>("Pop");
@@ -36,11 +52,7 @@ function App() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [showPresets, setShowPresets] = useState(false);
 
-  //pruebas
-
-
-
-  // Progresión
+  // Estado y operaciones sobre la progresión armónica
   const {
     progression,
     barWarnings,
@@ -55,7 +67,7 @@ function App() {
     setFromPreset,
   } = useProgressionManager();
 
-  // Playback
+  // Control de reproducción de audio y bloque activo
   const { 
     isPlaying, 
     playFromState, 
@@ -64,17 +76,24 @@ function App() {
     activeBlockId, 
   } = usePlayback();
 
-  // Aplicar una sugerencia concreta (desde SuggestionStrip)
+  /**
+   * Inserta una sugerencia concreta al final de la progresión.
+   * Se utiliza desde el panel de recomendaciones.
+   */
   function applySuggestion(degree: string) {
     appendBlockWithDegree(degree as ChordBlock["degree"], 4);
   }
 
-  // 👇 NUEVO: insertar acordes desde el Pool
+  /**
+   * Inserta acordes seleccionados desde el banco teórico (ChordPool).
+   */
   function handleInsertFromPool(degree: string) {
     appendBlockWithDegree(degree as ChordBlock["degree"], 4);
   }
 
-  // Guardar preset actual
+  /**
+   * Guarda el estado actual como preset en la biblioteca local.
+   */
   function handleSavePreset() {
     saveNewPreset({
       title: title.trim() || "Sin título",
@@ -86,7 +105,9 @@ function App() {
     console.log("[library] guardado");
   }
 
-  // Cargar preset desde la librería (NO auto-play)
+  /**
+   * Carga un preset desde la biblioteca sin iniciar la reproducción.
+   */
   function handleLoadPreset(preset: {
     title: string;
     bpm: number;
@@ -101,7 +122,10 @@ function App() {
     setFromPreset(preset.progression);
   }
 
-  // Cargar preset + reproducir (usado por botones Pop/Neo)
+  /**
+   * Carga un preset de ejemplo (Pop/Neo) y, si corresponde,
+   * actualiza inmediatamente la reproducción.
+   */
   function loadPresetAndMaybePlay(p: ReturnType<typeof getPopPreset>) {
     setBpm(p.bpm);
     setKey(p.key as typeof key);
@@ -116,7 +140,7 @@ function App() {
     }
   }
 
-  // Play/Stop desde Toolbar
+  // Play/Stop disparados desde la Toolbar
   const handlePlay = async () => {
     await playFromState(progression, bpm, key);
   };
@@ -124,12 +148,18 @@ function App() {
     stopPlayback();
   };
 
-  // Reschedule al cambiar progression/BPM/Key mientras está sonando
+  /**
+   * Cuando cambia la progresión, el BPM o la tonalidad durante la reproducción,
+   * se reprograma el loop para que el cambio entre en el siguiente compás.
+   */
   useEffect(() => {
     rescheduleOnChange(progression, bpm, key);
   }, [progression, bpm, key, rescheduleOnChange]);
 
-  // Barra espaciadora → Play/Pause
+  /**
+   * Atajo de teclado: barra espaciadora para alternar Play/Pause
+   * con el estado actual de la progresión.
+   */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code === "Space") {
@@ -145,7 +175,9 @@ function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [isPlaying, progression, bpm, key, playFromState, stopPlayback]);
 
-  // Export / Import JSON
+  /**
+   * Exporta la biblioteca completa de presets a un archivo JSON descargable.
+   */
   function handleExportJSON() {
     const json = exportLibraryToJSON();
     const blob = new Blob([json], { type: "application/json" });
@@ -157,10 +189,17 @@ function App() {
     URL.revokeObjectURL(url);
   }
 
+  /**
+   * Dispara el input de archivo oculto para importar una biblioteca JSON.
+   */
   function handleImportClick() {
     fileInputRef.current?.click();
   }
 
+  /**
+   * Lee el archivo seleccionado y delega el parseo/importación
+   * al módulo de almacenamiento.
+   */
   function handleImportFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -178,116 +217,123 @@ function App() {
   // -----------------
   // Render principal
   // -----------------
-return (
-  <main className="app-root">
-    {/* Topbar: título + toolbar en una sola franja */}
-    <header className="app-header">
-     <Toolbar
-        keyValue={key}
-        keys={KEYS}
-        onChangeKey={(k) => setKey(k as (typeof KEYS)[number])}
+  return (
+    <main className="app-root">
+      {/* Encabezado: barra superior con controles globales */}
+      <header className="app-header">
+        <Toolbar
+          keyValue={key}
+          keys={KEYS}
+          onChangeKey={(k) => setKey(k as (typeof KEYS)[number])}
 
-        bpm={bpm}
-        onChangeBpm={setBpm}
+          bpm={bpm}
+          onChangeBpm={setBpm}
 
-        styleValue={style}
-        styles={STYLES}
-        onChangeStyle={(s) => setStyle(s as (typeof STYLES)[number])}
+          styleValue={style}
+          styles={STYLES}
+          onChangeStyle={(s) => setStyle(s as (typeof STYLES)[number])}
 
-        onPlay={handlePlay}
-        onStop={handleStop}
+          onPlay={handlePlay}
+          onStop={handleStop}
 
-        title={title}
-        onChangeTitle={setTitle}
-        onSave={handleSavePreset}
-        onOpenLibrary={() => setLibraryOpen(true)}
+          title={title}
+          onChangeTitle={setTitle}
+          onSave={handleSavePreset}
+          onOpenLibrary={() => setLibraryOpen(true)}
 
-      
-        onLoadPop={() => loadPresetAndMaybePlay(getPopPreset())}
-        onLoadNeo={() => loadPresetAndMaybePlay(getNeoPreset())}
-        onExportJSON={handleExportJSON}
-        onImportClick={handleImportClick}
-      />
+          onLoadPop={() => loadPresetAndMaybePlay(getPopPreset())}
+          onLoadNeo={() => loadPresetAndMaybePlay(getNeoPreset())}
+          onExportJSON={handleExportJSON}
+          onImportClick={handleImportClick}
+        />
+      </header>
 
+      {/* Layout principal: editor (izquierda) + sugerencias teóricas (derecha) */}
+      <div className="app-main-layout">
+        {/* Columna izquierda: pista, banco de acordes y leyenda funcional */}
+        <div className="app-main-left">
+          {/* Pista principal de progresión con drag & drop */}
+          <div className="progression-track">
+            <ProgressionList
+              progression={progression}
+              activeBlockId={activeBlockId}
+              onReorder={handleReorder}
+              onChangeDuration={updateBlockDuration}
+              onDuplicate={duplicateBlock}
+              onDelete={deleteBlock}
+            />
+          </div>
 
-    </header>
- 
-    {/* 🧱 Layout principal: editor (izq) + teoría/sugerencias (der) */}
-    <div className="app-main-layout">
-      {/* Columna izquierda: banco + progresión + chips + leyenda */}
-      <div className="app-main-left">
-        
-        <div className="progression-track">
-          <ProgressionList
-            progression={progression}
-            activeBlockId={activeBlockId}
-            onReorder={handleReorder}
-            onChangeDuration={updateBlockDuration}
-            onDuplicate={duplicateBlock}
-            onDelete={deleteBlock}
+          {/* Banco de acordes organizado por sistemas teóricos */}
+          <ChordPool keyName={key} onInsert={handleInsertFromPool} />
+
+          {/* 
+          Avisos métricos:
+          Bloque opcional que muestra compases que superan los 4 beats.
+          Se mantiene comentado en esta versión del prototipo.
+          
+          {barWarnings.length > 0 && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="alert alert-warning mt-sm mb-sm"
+            >
+              <strong>Atención métrica:</strong>
+              {barWarnings.map((w) => (
+                <div key={w.bar}>
+                  Compás {w.bar} tiene {w.beats} beats (deberían ser 4).
+                </div>
+              ))}
+            </div>
+          )}
+          */}
+
+          {/* Leyenda funcional con tooltips T / S / D */}
+          <section className="app-legend">
+            <strong>Leyenda:&nbsp;</strong>
+            <InfoTooltip text="Centro de reposo; estabilidad y cierre.">
+              <span className="legend-tag legend-t">T</span>
+            </InfoTooltip>
+            &nbsp;= Tónica,&nbsp;
+            <InfoTooltip text="Prepara el movimiento; puente hacia D o regreso a T.">
+              <span className="legend-tag legend-s">S</span>
+            </InfoTooltip>
+            &nbsp;= Subdominante,&nbsp;
+            <InfoTooltip text="Tensión; impulsa la resolución hacia T.">
+              <span className="legend-tag legend-d">D</span>
+            </InfoTooltip>
+            &nbsp;= Dominante.
+          </section>
+        </div>
+
+        {/* Columna derecha: panel de recomendaciones explicadas */}
+        <div className="app-main-right">
+          <SuggestionPanel
+            style={style as Style}
+            keyName={key}
+            currentDegree={suggestionBaseDegree}
+            onApplySuggestion={applySuggestion}
           />
         </div>
-        
-        {/* Banco de acordes exploratorio */}
-        <ChordPool keyName={key} onInsert={handleInsertFromPool} />
-
-        {/* Warning métrico (si algún compás supera 4 beats) 
-        {barWarnings.length > 0 && (
-          <div
-            role="status"
-            aria-live="polite"
-            className="alert alert-warning mt-sm mb-sm"
-          >
-            <strong>Atención métrica:</strong>
-            {barWarnings.map((w) => (
-              <div key={w.bar}>
-                Compás {w.bar} tiene {w.beats} beats (deberían ser 4).
-              </div>
-            ))}
-          </div>
-        )}
-          */}
-        {/* Lista de bloques con DnD */}
-        {/* Pista de progresión con scroll horizontal discreto */}
-        
-        {/* Leyenda con tooltips T/S/D */}
-        <section className="app-legend">
-          <strong>Leyenda:&nbsp;</strong>
-          <InfoTooltip text="Centro de reposo; estabilidad y cierre.">
-            <span className="legend-tag legend-t">T</span>
-          </InfoTooltip>
-          &nbsp;= Tónica,&nbsp;
-          <InfoTooltip text="Prepara el movimiento; puente hacia D o regreso a T.">
-            <span className="legend-tag legend-s">S</span>
-          </InfoTooltip>
-          &nbsp;= Subdominante,&nbsp;
-          <InfoTooltip text="Tensión; empuja a resolver hacia T.">
-            <span className="legend-tag legend-d">D</span>
-          </InfoTooltip>
-          &nbsp;= Dominante.
-        </section>
       </div>
 
-      {/* Columna derecha: panel de recomendaciones explicadas */}
-      <div className="app-main-right">
-        <SuggestionPanel
-          style={style as Style}
-          keyName={key}
-          currentDegree={suggestionBaseDegree}
-          onApplySuggestion={applySuggestion}
-        />
-      </div>
-    </div>
+      {/* Panel de biblioteca (overlay modal) */}
+      <LibraryPanel
+        open={libraryOpen}
+        onClose={() => setLibraryOpen(false)}
+        onLoadPreset={handleLoadPreset}
+      />
 
-    {/* Panel de biblioteca (overlay) */}
-    <LibraryPanel
-      open={libraryOpen}
-      onClose={() => setLibraryOpen(false)}
-      onLoadPreset={handleLoadPreset}
-    />
-  </main>
-);
-
+      {/* Input de archivo oculto para importar biblioteca JSON */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/json"
+        style={{ display: "none" }}
+        onChange={handleImportFileChange}
+      />
+    </main>
+  );
 }
 
 export default App;

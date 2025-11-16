@@ -1,14 +1,16 @@
 // --------------------------------------------------
-// 💬 ChordFlow — Explicaciones cortas de sugerencias
+// Plataforma Web Interactiva Para La Creación y Exploración De Progresiones Armónicas
+// Módulo: Explicaciones de sugerencias armónicas
 // --------------------------------------------------
-// Dado un movimiento from→to y el estilo,
-// genera un texto breve (≤ ~140 caract) que combine:
+// Este módulo genera explicaciones textuales breves y extendidas para
+// movimientos entre grados (from → to), combinando:
 //
-// - Función tonal básica (T/S/D)
-// - Transición entre funciones (reposo → tensión, etc.)
-// - Regla Berklee si aplica (ii–V, backdoor, intercambio modal…)
+// - Función tonal básica (T/S/D).
+// - Tipo de transición funcional (reposo, preparación, tensión).
+// - Reglas específicas de armonía tonal (por ejemplo, patrones Berklee).
 //
-// Pensado para usarse en el SuggestionPanel / tooltips.
+// Se utiliza principalmente en el SuggestionPanel y en tooltips
+// educativos dentro de la interfaz.
 // --------------------------------------------------
 
 import { functionalRoleMajor } from "../theory/functions";
@@ -16,24 +18,38 @@ import { getBerkleeExplanation } from "../theory/berklee";
 import type { Style } from "./markov";
 
 export interface SuggestionExplanationParams {
-  fromDegree: string; // grado actual (I, ii, V, bVII, etc.)
-  toDegree: string;   // grado sugerido
-  style: Style;       // "Pop" | "Neo"
+  /** Grado actual dentro de la progresión (I, ii, V, bVII, etc.) */
+  fromDegree: string;
+
+  /** Grado sugerido por el motor de recomendación */
+  toDegree: string;
+
+  /** Estilo armónico activo ("Pop" | "Neo") */
+  style: Style;
 }
 
 type Role = "T" | "S" | "D";
 
-/** Texto corto para cada rol funcional */
+/**
+ * Etiqueta corta en texto natural para cada rol funcional.
+ */
 function roleLabel(role: Role): string {
   switch (role) {
-    case "T": return "tónica";
-    case "S": return "subdominante";
-    case "D": return "dominante";
-    default:  return "tónica";
+    case "T":
+      return "tónica";
+    case "S":
+      return "subdominante";
+    case "D":
+      return "dominante";
+    default:
+      return "tónica";
   }
 }
 
-/** Breve descripción del tipo de movimiento T/S/D */
+/**
+ * Devuelve una breve descripción del tipo de movimiento funcional
+ * entre dos roles tonales (T/S/D).
+ */
 function transitionLabel(fromRole: Role, toRole: Role): string {
   if (fromRole === "S" && toRole === "D") {
     return "preparación → tensión (cadencia)";
@@ -53,49 +69,50 @@ function transitionLabel(fromRole: Role, toRole: Role): string {
   return "movimiento funcional típico";
 }
 
-/** Etiqueta corta para el estilo */
+/**
+ * Etiqueta corta para el estilo armónico.
+ */
 function styleLabel(style: Style): string {
   return style === "Pop" ? "estilo Pop" : "estilo Neo";
 }
 
 /**
- * Genera una explicación corta para el movimiento from→to.
+ * Genera una explicación corta para el movimiento from → to.
+ *
  * Ejemplos:
- *  - "ii (S) → V (D): preparación → tensión (cadencia)."
- *  - "IVm7 → I: backdoor (Berklee)."
+ * - "ii (subdominante) → V (dominante): preparación → tensión (cadencia)."
+ * - "IVm7 → I: backdoor (Berklee)."
  */
 export function getSuggestionExplanation(
   params: SuggestionExplanationParams
 ): string {
   const { fromDegree, toDegree, style } = params;
 
-  // Funciones tonales básicas (modo mayor por ahora)
+  // Funciones tonales básicas (modo mayor)
   const fromRole = functionalRoleMajor(fromDegree) as Role;
   const toRole = functionalRoleMajor(toDegree) as Role;
 
   const fromTag = `${fromDegree} (${roleLabel(fromRole)})`;
   const toTag = `${toDegree} (${roleLabel(toRole)})`;
 
-  // Intentar primero explicación específica Berklee
+  // Intentar primero una explicación específica basada en reglas Berklee
   const berkleeText = getBerkleeExplanation(fromDegree, toDegree);
 
   if (berkleeText) {
-    // Ej.: "ii (subdominante) → V (dominante): ii prepara V (predominante → dominante)."
     return `${fromTag} → ${toTag}: ${berkleeText}.`;
   }
 
-  // Si no hay regla Berklee, usamos solo función tonal + estilo
+  // Si no hay regla específica, se usa una descripción funcional general
   const trans = transitionLabel(fromRole, toRole);
   const styleTxt = styleLabel(style);
 
-  // Ej.: "I (tónica) → vi (subdominante): reposo → preparación (estilo Pop)."
   return `${fromTag} → ${toTag}: ${trans} (${styleTxt}).`;
 }
 
 export interface BriefExtraInfo {
-  origin: string; // "Prestado del modo eólico"
-  color: string;  // "Color oscuro/triste"
-  styleHint: string; // "Típico en Neo-Soul"
+  origin: string;     // Ejemplo: "Prestado del modo eólico"
+  color: string;      // Ejemplo: "Color oscuro/triste"
+  styleHint: string;  // Ejemplo: "Típico en Neo-Soul"
 }
 
 export interface FullExplanation {
@@ -104,15 +121,15 @@ export interface FullExplanation {
   movement: string;
   color: string;
   styleUsage: string;
-  contextual?: string; // relacion con el acorde anterior
+  contextual?: string; // Relación con el acorde anterior (extensible a futuro)
 }
 
 // --------------------------------------------------
-// Diccionario armónico básico (por grado)
+// Diccionario armónico básico por grado
 // --------------------------------------------------
 
 export const CHORD_INFO: Record<string, BriefExtraInfo> = {
-  // --- Modales ---
+  // Grados provenientes de intercambio modal
   bIII: {
     origin: "Prestado del modo eólico",
     color: "Color cinematográfico / expansivo",
@@ -134,7 +151,7 @@ export const CHORD_INFO: Record<string, BriefExtraInfo> = {
     styleHint: "Muy usado en Neo-Soul y baladas Pop",
   },
 
-  // --- Dominantes secundarios ---
+  // Dominantes secundarios
   "V/ii": {
     origin: "Dominante secundario → ii",
     color: "Tensión dirigida",
@@ -143,7 +160,7 @@ export const CHORD_INFO: Record<string, BriefExtraInfo> = {
   "V/iii": {
     origin: "Dominante secundario → iii",
     color: "Tensión mayor luminosa",
-    styleHint: "Frecuente en Pop / R&B",
+    styleHint: "Frecuente en Pop y R&B",
   },
   "V/IV": {
     origin: "Dominante secundario → IV",
@@ -161,7 +178,7 @@ export const CHORD_INFO: Record<string, BriefExtraInfo> = {
     styleHint: "Común en Pop y baladas",
   },
 
-  // --- Diatónicos (breves genéricos) ---
+  // Grados diatónicos (resumen genérico)
   I: {
     origin: "Acorde de tónica",
     color: "Reposo / estabilidad",
@@ -200,9 +217,14 @@ export const CHORD_INFO: Record<string, BriefExtraInfo> = {
 };
 
 // --------------------------------------------------
-// Explicación completa (para tooltips extendidos)
+// Explicación completa por grado sugerido
 // --------------------------------------------------
 
+/**
+ * Construye una explicación ampliada para un grado específico.
+ * Si el grado no se encuentra en CHORD_INFO, devuelve un texto
+ * genérico adecuado para la tonalidad mayor.
+ */
 export function getFullExplanation(toDegree: string): FullExplanation {
   const info = CHORD_INFO[toDegree];
 
@@ -212,11 +234,11 @@ export function getFullExplanation(toDegree: string): FullExplanation {
       func: "Función tonal básica",
       movement: "Movimiento tonal estándar",
       color: "Color neutro",
-      styleUsage: "Común en estilos Pop / Neo",
+      styleUsage: "Común en estilos Pop y Neo",
     };
   }
 
-  // Clasificación de función general
+  // Clasificación de función general a partir del grado
   let func = "Tónica";
   if (["ii", "IV", "iv"].includes(toDegree)) func = "Subdominante";
   if (["V", "vii°", "V/ii", "V/V", "V/vi"].includes(toDegree)) func = "Dominante";
@@ -233,32 +255,54 @@ export function getFullExplanation(toDegree: string): FullExplanation {
 
 // --------------------------------------------------
 // Contexto: relación entre from → to
-// (por ahora vacío, lo completamos en fase 2)
+// (marco para extensiones futuras)
 // --------------------------------------------------
 
+/**
+ * Punto de extensión para generar explicaciones contextuales
+ * que tengan en cuenta la relación entre el acorde anterior
+ * y el acorde sugerido.
+ *
+ * En esta versión se deja intencionalmente vacío para futuras mejoras.
+ */
 export function getContextualExplanation(
   fromDegree: string | null,
   toDegree: string
 ): string {
   if (!fromDegree) return "";
-  // acá luego usamos romanPro + heuristics
+  // En futuras versiones se integrará con un motor más detallado
+  // de análisis funcional (por ejemplo, romanPro y heurísticas adicionales).
   return "";
 }
 
 // --------------------------------------------------
-// Empaquetado final: explicación completa de sugerencia
+// Empaquetado final: explicación completa de la sugerencia
 // --------------------------------------------------
 
-export function getFullSuggestionExplanation(params: SuggestionExplanationParams) {
-  const short = getSuggestionExplanation(params); // tu motor actual
+/**
+ * Devuelve un objeto con diferentes niveles de explicación
+ * para una sugerencia concreta:
+ *
+ * - short: explicación funcional breve basada en T/S/D y estilo.
+ * - brief: información resumida del acorde (origen, color, estilo).
+ * - full: explicación extendida para tooltips más largos.
+ * - contextual: reservado para explicaciones dependientes del acorde anterior.
+ */
+export function getFullSuggestionExplanation(
+  params: SuggestionExplanationParams
+) {
+  const short = getSuggestionExplanation(params);
   const brief = CHORD_INFO[params.toDegree];
   const full = getFullExplanation(params.toDegree);
-  const contextual = getContextualExplanation(params.fromDegree, params.toDegree);
+  const contextual = getContextualExplanation(
+    params.fromDegree,
+    params.toDegree
+  );
 
   return {
-    short,       // explicación funcional
-    brief,       // origen / color / estilo
-    full,        // tooltip largo
-    contextual,  // próximamente contextual
+    short,
+    brief,
+    full,
+    contextual,
   };
 }

@@ -1,5 +1,18 @@
 // --------------------------------------------------
-// 🎼 Teoría Armonica — Conjuntos de acordes por sistema
+// Plataforma Web Interactiva Para La Creación y Exploración De Progresiones Armónicas
+// Módulo: Conjuntos de acordes por sistema teórico
+// --------------------------------------------------
+// Este módulo agrupa grados armónicos (en notación romana)
+// en distintos conjuntos teóricos. Cada conjunto representa
+// un “sistema” o enfoque (diatónico, dominantes secundarios,
+// intercambio modal, etc.) que se utiliza en la interfaz para:
+//
+// - Organizar el “banco de acordes” por función o sistema.
+// - Facilitar la exploración guiada de acordes afines.
+// - Mantener alineación con el motor teórico roman2/Markov.
+//
+// Solo se exportan aquellos conjuntos totalmente soportados
+// por el motor actual (roman2 y Markov).
 // --------------------------------------------------
 
 export type TheoryGroup = {
@@ -15,7 +28,7 @@ export type TheorySet = {
 };
 
 // --------------------------------------------
-// 1) DIATÓNICOS (Mayor)
+// 1) DIATÓNICOS (modo mayor)
 // --------------------------------------------
 const DIATONIC: TheorySet = {
   id: "diatonic",
@@ -23,17 +36,17 @@ const DIATONIC: TheorySet = {
   groups: [
     {
       name: "Tónica (T)",
-      description: "Reposo y estabilidad.",
+      description: "Acordes de reposo y estabilidad.",
       degrees: [{ degree: "I" }, { degree: "iii" }, { degree: "vi" }],
     },
     {
       name: "Subdominante (S)",
-      description: "Prepara o desvía hacia D o regreso a T.",
+      description: "Prepara o desvía hacia D o para regresar a T.",
       degrees: [{ degree: "ii" }, { degree: "IV" }],
     },
     {
       name: "Dominante (D)",
-      description: "Tensión que empuja a resolver en T.",
+      description: "Acordes de tensión que empujan a resolver en T.",
       degrees: [{ degree: "V" }, { degree: "vii°" }],
     },
   ],
@@ -41,7 +54,7 @@ const DIATONIC: TheorySet = {
 
 // --------------------------------------------
 // 2) DOMINANTES SECUNDARIOS
-//    (totalmente soportados por romanPro/Markov)
+//    (totalmente soportados por roman2 / Markov)
 // --------------------------------------------
 const SECONDARY_DOMS: TheorySet = {
   id: "secondary",
@@ -49,7 +62,7 @@ const SECONDARY_DOMS: TheorySet = {
   groups: [
     {
       name: "Dominantes secundarios",
-      description: "Dominantes que resuelven a grados diatónicos.",
+      description: "Dominantes que resuelven hacia grados diatónicos.",
       degrees: [
         { degree: "V/ii" },
         { degree: "V/iii" },
@@ -63,7 +76,7 @@ const SECONDARY_DOMS: TheorySet = {
 
 // --------------------------------------------
 // 3) SUSTITUCIÓN TRITONAL
-//    🔒 FUTURO: por ahora el motor no los reproduce bien
+//    FUTURO: por ahora el motor no los reproduce bien
 // --------------------------------------------
 const TRITONE: TheorySet = {
   id: "tritone",
@@ -85,7 +98,7 @@ const TRITONE: TheorySet = {
 
 // --------------------------------------------
 // 4) INTERCAMBIO MODAL
-//    (recortado a lo que romanPro soporta: bIII, bVI, bVII, iv)
+//    (recortado a lo que roman2 soporta: bIII, bVI, bVII, iv)
 // --------------------------------------------
 const MODAL: TheorySet = {
   id: "modal",
@@ -93,13 +106,13 @@ const MODAL: TheorySet = {
   groups: [
     {
       name: "Acordes prestados",
-      description: "Prestados de paralela menor y modos cercanos.",
+      description: "Acordes prestados de la paralela menor y modos cercanos.",
       degrees: [
         { degree: "bIII" },
         { degree: "bVI" },
         { degree: "bVII" },
         { degree: "iv" },
-        // i, ii°, bII quedan para futuro (todavía no soportados)
+        // i, ii°, bII quedan para futuras extensiones del motor
         // { degree: "i" },
         // { degree: "ii°" },
         // { degree: "bII" },
@@ -110,15 +123,15 @@ const MODAL: TheorySet = {
 
 // --------------------------------------------
 // 5) MENOR ARMÓNICA
-//    🔒 FUTURO: V+, iii+, bVI+ no están aún en romanPro
+//    FUTURO: V+, iii+, bVI+ no están aún en roman2
 // --------------------------------------------
 const HARMONIC_MINOR: TheorySet = {
   id: "harmonicMinor",
   label: "Prestados de menor armónica",
   groups: [
     {
-      name: "Acordes de C menor armónica",
-      description: "Tensión fuerte, leading tone y V mayor.",
+      name: "Acordes de menor armónica",
+      description: "Acordes con tensión fuerte, leading tone y V mayor.",
       degrees: [
         { degree: "V+" },
         { degree: "vii°" },
@@ -129,7 +142,7 @@ const HARMONIC_MINOR: TheorySet = {
   ],
 };
 
-// Exportamos solo lo que está bien soportado por el motor actual
+// Solo se exportan los conjuntos plenamente soportados por el motor actual.
 export const THEORY_SETS: TheorySet[] = [
   DIATONIC,
   SECONDARY_DOMS,
