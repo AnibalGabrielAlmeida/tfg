@@ -1,54 +1,76 @@
 // --------------------------------------------------
-// 🎵 ChordFlow — Tipos y utilidades métricas
+// Plataforma Web Interactiva Para La Creación y Exploración De Progresiones Armónicas
+// Módulo: types — Tipos y utilidades métricas de progresión
 // --------------------------------------------------
-// Este módulo define las estructuras de datos básicas
-// para representar acordes (bloques) dentro de una
-// progresión armónica y funciones auxiliares para
-// validar la métrica (4/4).
+// Este módulo define:
+// - La estructura base para almacenar progresiones en la biblioteca.
+// - La representación de un bloque de acorde dentro de una progresión.
+// - El conjunto de grados romanos válidos para la escala mayor.
+// - Funciones auxiliares para analizar el uso métrico en compás 4/4.
+//
+// Estos tipos son utilizados por los módulos de almacenamiento, teoría,
+// reproducción y edición visual de progresiones.
 // --------------------------------------------------
-// types.ts
 
-
+// Estructura de un ítem guardado en la biblioteca local
 export type LibraryItem = {
   id: string;
   title: string;
-  key: string;            // o tu union "C" | "G" | ...
+  key: string;            // Puede reemplazarse por una unión estricta ("C" | "G" | ...)
   bpm: number;
-  style: string;          // "Pop" | "Neo" | ...
-  blocks: ChordBlock[];   // ojo: acá es 'blocks' (no 'progression')
-  createdAt: number;      // Date.now()
+  style: string;          // Estilo activo ("Pop", "Neo", etc.)
+  blocks: ChordBlock[];   // Lista de bloques de acorde (nota: aquí se llama "blocks")
+  createdAt: number;      // Timestamp (Date.now)
   updatedAt: number;
-  version: string;        // ej. "1.0.0"
+  version: string;        // Permite versionado interno (ej.: "1.0.0")
 };
 
-// 🎶 Representa los grados tonales clásicos (escala mayor)
-export type RomanDegree = "I" | "ii" | "iii" | "IV" | "V" | "vi" | "vii°";
-// Solo se aceptan estos valores — evita errores al escribir grados.
-// Ejemplo: "I" (tónica), "ii" (supertonal), "V" (dominante), etc.
+// Grados romanos tradicionales de la escala mayor
+export type RomanDegree =
+  | "I"
+  | "ii"
+  | "iii"
+  | "IV"
+  | "V"
+  | "vi"
+  | "vii°";
+// Solo se aceptan estos valores para evitar errores tipográficos en la notación.
 
-// 🧱 Estructura de un bloque dentro de la progresión
+// Representa un bloque individual dentro de la progresión
 export type ChordBlock = {
-  id: string;              // Identificador único (para React y drag & drop)
-  degree: RomanDegree;     // Grado armónico (I, ii, V, etc.)
-  durationBeats: number;   // Duración en beats (4 = compás completo en 4/4)
+  id: string;               // Identificador único para React y drag & drop
+  degree: RomanDegree;      // Grado armónico (I, ii, V, etc.)
+  durationBeats: number;    // Duración en beats (4 equivale a un compás completo en 4/4)
 };
 
-// 🧮 Calcula cuántos beats ocupa cada compás en la progresión
+/**
+ * Calcula cuántos beats acumula cada compás basándose en duraciones consecutivas.
+ * Por ejemplo:
+ *   Input: [{4 beats}, {4 beats}, {3 beats}]
+ *   Output: [4, 4, 3]
+ *
+ * @param blocks Lista de bloques de acorde.
+ * @returns Un arreglo donde cada índice representa un compás y su valor total de beats.
+ */
 export function barsUsage(blocks: ChordBlock[]) {
-  const usage: number[] = []; // usage[n] = total de beats en el compás n
-  let cursor = 0;             // contador de beats recorridos
+  const usage: number[] = [];
+  let cursor = 0;
 
   for (const b of blocks) {
-    const bar = Math.floor(cursor / 4); // cada 4 beats = nuevo compás
+    const bar = Math.floor(cursor / 4);      // Cada 4 beats comienza un nuevo compás
     usage[bar] = (usage[bar] ?? 0) + b.durationBeats;
-    cursor += b.durationBeats;          // avanzar el cursor según la duración
+    cursor += b.durationBeats;
   }
 
-  return usage; // Ejemplo: [4, 4, 3] → 2 compases completos y uno incompleto
+  return usage;
 }
 
-// 🚨 Verifica si algún compás supera el límite de 4 beats
+/**
+ * Verifica si algún compás supera el límite estándar de 4 beats.
+ *
+ * @param blocks Lista de bloques de acorde.
+ * @returns True si existe algún compás con más de 4 beats.
+ */
 export function exceedsAnyBar(blocks: ChordBlock[]) {
-  // Usa barsUsage() y devuelve true si algún compás > 4 beats
-  return barsUsage(blocks).some(u => (u ?? 0) > 4);
+  return barsUsage(blocks).some((u) => (u ?? 0) > 4);
 }

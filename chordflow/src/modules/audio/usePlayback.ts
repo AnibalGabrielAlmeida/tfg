@@ -1,6 +1,18 @@
-// src/modules/audio/usePlayback.ts
 // --------------------------------------------------
-// 🎧 usePlayback — Control del transporte y audio
+// Plataforma Web Interactiva Para La Creación y Exploración De Progresiones Armónicas
+// Módulo: usePlayback (hook de control de transporte y audio)
+// --------------------------------------------------
+// Este hook centraliza todas las operaciones relacionadas con la
+// reproducción de la progresión:
+//
+// - Iniciar y detener la reproducción (play/stop).
+// - Programar la progresión completa según el tempo y la tonalidad.
+// - Reprogramar la progresión en el próximo downbeat cuando hay cambios.
+// - Mantener y exponer el bloque activo, para sincronizar el
+//   resaltado visual en la interfaz.
+//
+// El módulo player.ts se encarga del manejo completo del motor de audio.
+// Este hook funciona como una capa de integración entre React y Tone.js.
 // --------------------------------------------------
 
 import { useState, useCallback, useEffect } from "react";
@@ -9,27 +21,33 @@ import {
   stop,
   scheduleProgression,
   rescheduleAtNextDownbeat,
-  subscribeActiveBlock,          // 👈 nuevo
+  subscribeActiveBlock,
 } from "./player";
 import type { ChordBlock } from "../progression/types";
 
 /**
- * Hook que controla el estado de reproducción global.
- * Encapsula play/stop, highlight del bloque y reschedule.
+ * Hook que gestiona el estado de reproducción global del sistema.
+ * Expone métodos para iniciar, detener y reprogramar la progresión,
+ * además de informar qué bloque está activo en cada momento.
  */
 export function usePlayback() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
 
-  // 🔥 Nos suscribimos una sola vez a los cambios de bloque activo
+  // Se suscribe una sola vez a los eventos del motor de audio
+  // que informan qué bloque está entrando en reproducción.
   useEffect(() => {
     subscribeActiveBlock((id) => setActiveBlockId(id));
   }, []);
 
-  // Inicia reproducción con el estado actual (progresión + bpm + key)
+  /**
+   * Inicia la reproducción con la progresión, bpm y tonalidad actuales.
+   * Limpia el bloque activo previo, programa la progresión
+   * y luego arranca el transporte.
+   */
   const playFromState = useCallback(
     async (progression: ChordBlock[], bpm: number, key: string) => {
-      setActiveBlockId(null);                   // limpiar antes de arrancar
+      setActiveBlockId(null);
       scheduleProgression(progression, bpm, key);
       await play();
       setIsPlaying(true);
@@ -37,14 +55,19 @@ export function usePlayback() {
     []
   );
 
-  // Detiene reproducción
+  /**
+   * Detiene completamente la reproducción y limpia el estado visual.
+   */
   const stopPlayback = useCallback(() => {
     stop();
     setIsPlaying(false);
-    setActiveBlockId(null);                    // limpiar highlight
+    setActiveBlockId(null);
   }, []);
 
-  // Reprograma al próximo downbeat si está sonando
+  /**
+   * Si la reproducción está corriendo, reprograma la progresión en el
+   * próximo downbeat para evitar cortes abruptos.
+   */
   const rescheduleOnChange = useCallback(
     (progression: ChordBlock[], bpm: number, key: string) => {
       if (!isPlaying) return;
@@ -58,6 +81,6 @@ export function usePlayback() {
     playFromState,
     stopPlayback,
     rescheduleOnChange,
-    activeBlockId,          // 👈 esto va a ProgressionList
+    activeBlockId, // Enviado a ProgressionList para resaltar el bloque activo
   };
 }

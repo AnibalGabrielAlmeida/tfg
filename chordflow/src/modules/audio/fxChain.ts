@@ -1,58 +1,83 @@
 // --------------------------------------------------
-// 🎛 ChordFlow — Instrumento + cadena de FX (Rhodes)
+// Plataforma Web Interactiva Para La Creación y Exploración De Progresiones Armónicas
+// Módulo: createEPInstrument (Rhodes + cadena de efectos)
 // --------------------------------------------------
-// Sampler Rhodes real + EQ sutil, Comp suave, Chorus leve,
-// Tremolo 4–6 Hz y Reverb corta tipo habitación.
+// Inicializa un instrumento eléctrico tipo Rhodes basado en un Sampler,
+// aplicando una cadena de procesamiento orientada a lograr un timbre
+// suave, cálido y apto para prácticas educativas de armonía.
+//
+// La cadena de procesamiento incluye:
+// - EQ con recorte leve de graves y agudos.
+// - Compresión suave para estabilizar dinámica.
+// - Chorus y Tremolo sutiles para dar movimiento.
+// - Reverb de habitación corta.
+// - Limitador final para evitar clipping.
+// - Control general de volumen.
+//
+// El sampler original se carga desde createRhodesSampler().
 // --------------------------------------------------
 
 import * as Tone from "tone";
 import { createRhodesSampler } from "./sampler";
 
 export async function createEPInstrument(): Promise<Tone.Sampler> {
-  // 🔹 Cargar sampler de Rhodes
+  // Carga del sampler principal (instrumento Rhodes)
   const sampler = await createRhodesSampler();
 
-  // 🔹 FX: EQ, Comp, Chorus, Tremolo, Reverb, Limiter, Volume
+  // ----------------------------
+  // Procesadores de la cadena FX
+  // ----------------------------
+
+  // Limitador final para prevenir picos digitales
   const limiter = new Tone.Limiter(-1).toDestination();
 
+  // Compresión moderada para suavizar dinámica
   const compressor = new Tone.Compressor({
-    threshold: -20, // compresión suave
+    threshold: -20,
     ratio: 2.5,
     attack: 0.01,
     release: 0.25,
   });
 
-  // EQ3: low / mid / high (dB)
+  // EQ de tres bandas
   const eq = new Tone.EQ3({
-    low: -2,    // recorte leve de graves
-    mid: 0,     // neutro en medios
-    high: -2,   // recorte leve de agudos chillones
+    low: -2,
+    mid: 0,
+    high: -2,
   });
 
+  // Reverb corta tipo "room"
   const reverb = new Tone.Reverb({
-    decay: 1.6, // reverb corta
+    decay: 1.6,
     preDelay: 0.01,
-    wet: 0.18,  // 18% de mezcla
+    wet: 0.18,
   });
 
+  // Chorus suave para ensanchar el campo estéreo
   const chorus = new Tone.Chorus({
-    frequency: 1.2, // movimiento lento
-    depth: 0.3,     // leve
+    frequency: 1.2,
+    depth: 0.3,
     delayTime: 2.5,
     spread: 120,
-    wet: 0.15,      // 15% mezcla
+    wet: 0.15,
   }).start();
 
+  // Tremolo lento y moderado
   const tremolo = new Tone.Tremolo({
-    frequency: 5,   // 4–6 Hz
-    depth: 0.25,    // moderado
+    frequency: 5,
+    depth: 0.25,
     spread: 180,
-    wet: 0.15,      // 15% mezcla
+    wet: 0.15,
   }).start();
 
-  const volume = new Tone.Volume(-6); // nivel general del instrumento
+  // Ajuste general de volumen del instrumento
+  const volume = new Tone.Volume(-6);
 
-  // 🔗 Cadena: sampler → volume → tremolo → chorus → eq → comp → reverb → limiter → out
+  // --------------------------------------------------
+  // Cadena completa:
+  // sampler → volume → tremolo → chorus → EQ →
+  // compressor → reverb → limiter → salida
+  // --------------------------------------------------
   sampler.chain(volume, tremolo, chorus, eq, compressor, reverb, limiter);
 
   return sampler;

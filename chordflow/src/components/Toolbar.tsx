@@ -1,5 +1,5 @@
 // --------------------------------------------------
-// 🎚️ Plataforma Web Interactiva Para La Creación y Exploración De Progresiones Armónicas
+// Plataforma Web Interactiva Para La Creación y Exploración De Progresiones Armónicas
 // Componente: Toolbar
 // --------------------------------------------------
 // Barra superior de control de la aplicación. Desde este componente

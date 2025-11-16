@@ -1,5 +1,5 @@
 // --------------------------------------------------
-// ⚙️ Plataforma Web Interactiva Para La Creación y Exploración De Progresiones Armónicas
+// Plataforma Web Interactiva Para La Creación y Exploración De Progresiones Armónicas
 // Componente: ToolbarMenu
 // --------------------------------------------------
 // Menú contextual ubicado en la esquina derecha de la barra superior.
