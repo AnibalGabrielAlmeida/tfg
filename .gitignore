@@ -1,0 +1,21 @@
+# Node
+node_modules/
+dist/
+
+# Environment variables
+.env
+**/.env
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+
+# No versionar JS generado dentro de src
+backend/src/**/*.js
+backend/src/**/*.js.map
+
+# Build output
+backend/dist/
+dist/

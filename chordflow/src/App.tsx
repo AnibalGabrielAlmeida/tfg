@@ -34,6 +34,7 @@ import { usePlayback } from "./modules/audio/usePlayback";
 import type { Style } from "./modules/recommendation/markov";
 import SuggestionPanel from "./components/SuggestionPanel";
 import ChordPool from "./components/ChordPool";
+import { api } from "./api/client";
 
 // Tonalidades y estilos disponibles en el prototipo
 const KEYS = ["C", "G", "D", "F"] as const;
@@ -50,15 +51,20 @@ function App() {
   const [title, setTitle] = useState("Mi progresión");
   const [libraryOpen, setLibraryOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [showPresets, setShowPresets] = useState(false);
+  const [connected, setConnected] = useState(api.isConnected());
+
+    // --- Auth + nube ---
+  const [email, setEmail] = useState("test@test.com");
+  const [password, setPassword] = useState("123456");
+  const [cloudItems, setCloudItems] = useState<Array<{ id: string; title: string }>>([]);
+  const [selectedCloudId, setSelectedCloudId] = useState<string>("");
+  const [statusMsg, setStatusMsg] = useState<string>("");
+
 
   // Estado y operaciones sobre la progresión armónica
   const {
     progression,
-    barWarnings,
-    lastBlock,
     suggestionBaseDegree,
-    addBlock,
     updateBlockDuration,
     duplicateBlock,
     deleteBlock,
@@ -175,6 +181,13 @@ function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [isPlaying, progression, bpm, key, playFromState, stopPlayback]);
 
+/*agregar comentario*/
+useEffect(() => {
+  if (libraryOpen) setConnected(api.isConnected());
+}, [libraryOpen]);
+
+
+
   /**
    * Exporta la biblioteca completa de presets a un archivo JSON descargable.
    */
@@ -245,6 +258,7 @@ function App() {
           onLoadNeo={() => loadPresetAndMaybePlay(getNeoPreset())}
           onExportJSON={handleExportJSON}
           onImportClick={handleImportClick}
+          connected={connected}
         />
       </header>
 
@@ -322,7 +336,20 @@ function App() {
         open={libraryOpen}
         onClose={() => setLibraryOpen(false)}
         onLoadPreset={handleLoadPreset}
+        currentState={{ title, bpm, key, style, progression }}
+        onLoadCloud={(full) => {
+        setTitle(full.title ?? "Mi progresión");
+        if (full.bpm) setBpm(full.bpm);
+
+        const cloudStyle = full.style;
+        if (cloudStyle === "Pop" || cloudStyle === "Neo") {
+          setStyle(cloudStyle);
+        }
+
+        setFromPreset(full.data ?? []);
+      }}
       />
+
 
       {/* Input de archivo oculto para importar biblioteca JSON */}
       <input

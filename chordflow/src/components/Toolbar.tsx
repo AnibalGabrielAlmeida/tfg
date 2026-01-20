@@ -73,6 +73,8 @@ type Props = {
 
   /** Dispara el flujo de importación desde un archivo JSON */
   onImportClick: () => void;
+
+  connected: boolean;
 };
 
 export default function Toolbar({
@@ -96,11 +98,13 @@ export default function Toolbar({
   onLoadNeo,
   onExportJSON,
   onImportClick,
+
+  connected,
 }: Props) {
   return (
     <div className="toolbar-container">
       {/* Título de la app */}
-      <h1 className="toolbar-title">ChordFlow — Editor de progresiones</h1>
+      <h1 className="toolbar-title">Editor de progresiones</h1>
 
       {/* Controles centrales: tonalidad, tempo y estilo */}
       <div className="toolbar-middle">
@@ -159,6 +163,13 @@ export default function Toolbar({
 
         <button className="btn btn-ghost" onClick={onOpenLibrary}>
           Biblioteca
+        </button>
+
+        <button
+          className={`btn btn-sm ${connected ? "btn-success" : "btn-ghost"}`}
+          onClick={onOpenLibrary}
+        >
+          ☁️ {connected ? "Conectado" : "Desconectado"}
         </button>
 
         {/* Menú de opciones avanzadas (presets, exportación, importación) */}

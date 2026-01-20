@@ -267,7 +267,6 @@ export function getFullExplanation(toDegree: string): FullExplanation {
  */
 export function getContextualExplanation(
   fromDegree: string | null,
-  toDegree: string
 ): string {
   if (!fromDegree) return "";
   // En futuras versiones se integrará con un motor más detallado
@@ -296,7 +295,6 @@ export function getFullSuggestionExplanation(
   const full = getFullExplanation(params.toDegree);
   const contextual = getContextualExplanation(
     params.fromDegree,
-    params.toDegree
   );
 
   return {

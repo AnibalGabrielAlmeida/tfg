@@ -78,7 +78,7 @@ const SECONDARY_DOMS: TheorySet = {
 // 3) SUSTITUCIÓN TRITONAL
 //    FUTURO: por ahora el motor no los reproduce bien
 // --------------------------------------------
-const TRITONE: TheorySet = {
+/*const TRITONE: TheorySet = {
   id: "tritone",
   label: "Sustitución tritonal",
   groups: [
@@ -95,7 +95,7 @@ const TRITONE: TheorySet = {
     },
   ],
 };
-
+*/
 // --------------------------------------------
 // 4) INTERCAMBIO MODAL
 //    (recortado a lo que roman2 soporta: bIII, bVI, bVII, iv)
@@ -125,7 +125,7 @@ const MODAL: TheorySet = {
 // 5) MENOR ARMÓNICA
 //    FUTURO: V+, iii+, bVI+ no están aún en roman2
 // --------------------------------------------
-const HARMONIC_MINOR: TheorySet = {
+/*const HARMONIC_MINOR: TheorySet = {
   id: "harmonicMinor",
   label: "Prestados de menor armónica",
   groups: [
@@ -140,7 +140,7 @@ const HARMONIC_MINOR: TheorySet = {
       ],
     },
   ],
-};
+};*/
 
 // Solo se exportan los conjuntos plenamente soportados por el motor actual.
 export const THEORY_SETS: TheorySet[] = [

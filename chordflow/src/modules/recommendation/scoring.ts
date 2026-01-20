@@ -1,6 +1,6 @@
 // --------------------------------------------------
 // Plataforma Web Interactiva Para La Creación y Exploración De Progresiones Armónicas
-// Módulo: Motor de score armónico avanzado (PRO)
+// Módulo: Motor de score armónico avanzado 
 // --------------------------------------------------
 // Este módulo combina tres fuentes de información para evaluar
 // sugerencias armónicas y devolver un top-N listo para la interfaz:
@@ -14,7 +14,7 @@
 // utilizada en componentes como SuggestionPanel.
 // --------------------------------------------------
 
-// El motor romano original de teoría se reemplazó por roman2 (PRO)
+// El motor roman original de teoría se reemplazó por roman2
 // import { chordNotesFromDegree } from "../theory/roman";
 
 import { getBerkleeBoost } from "../theory/berklee";
