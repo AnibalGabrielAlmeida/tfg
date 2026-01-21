@@ -11,37 +11,58 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_ORIGIN,
+// ==========================
+// CORS CONFIG (PRODUCCIÓN)
+// ==========================
+
+const corsOrigin = process.env.FRONTEND_ORIGIN || process.env.CORS_ORIGIN;
+
+const corsOptions: cors.CorsOptions = {
+  origin: corsOrigin,
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-}));
+};
 
-// 🔑 manejar preflight explícitamente
-app.options("/*", cors());
+app.use(helmet());
+app.use(cors(corsOptions));
+
+// Manejo explícito de preflight (OPTIONS) — necesario para browsers
+app.options(/.*/, cors(corsOptions));
 
 app.use(express.json());
+
+// ==========================
+// ROUTES
+// ==========================
 
 app.use("/auth", authRoutes);
 app.use("/progressions", progressionsRoutes);
 
-// Endpoint de salud
+// ==========================
+// HEALTH CHECK
+// ==========================
+
 app.get("/health", async (req, res) => {
   try {
     const result = await pool.query("SELECT NOW() as now");
     res.json({
       status: "ok",
-      dbTime: result.rows[0].now
+      dbTime: result.rows[0].now,
     });
   } catch (err) {
     console.error("Error en /health:", err);
-    res.status(500).json({ status: "error", message: "DB connection failed" });
+    res.status(500).json({
+      status: "error",
+      message: "DB connection failed",
+    });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Servidor backend en http://localhost:${PORT}`);
-});
+// ==========================
+// SERVER
+// ==========================
 
+app.listen(PORT, () => {
+  console.log(`Servidor backend escuchando en puerto ${PORT}`);
+});
