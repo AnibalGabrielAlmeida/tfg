@@ -56,9 +56,9 @@ function App() {
     // --- Auth + nube ---
  // const [email, setEmail] = useState("test@test.com");
  // const [password, setPassword] = useState("123456");
-  const [cloudItems, setCloudItems] = useState<Array<{ id: string; title: string }>>([]);
-  const [selectedCloudId, setSelectedCloudId] = useState<string>("");
-  const [statusMsg, setStatusMsg] = useState<string>("");
+  //const [cloudItems, setCloudItems] = useState<Array<{ id: string; title: string }>>([]);
+ // const [selectedCloudId, setSelectedCloudId] = useState<string>("");
+ // const [statusMsg, setStatusMsg] = useState<string>("");
 
 
   // Estado y operaciones sobre la progresión armónica
