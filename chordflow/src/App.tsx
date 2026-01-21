@@ -54,8 +54,8 @@ function App() {
   const [connected, setConnected] = useState(api.isConnected());
 
     // --- Auth + nube ---
-  const [email, setEmail] = useState("test@test.com");
-  const [password, setPassword] = useState("123456");
+ // const [email, setEmail] = useState("test@test.com");
+ // const [password, setPassword] = useState("123456");
   const [cloudItems, setCloudItems] = useState<Array<{ id: string; title: string }>>([]);
   const [selectedCloudId, setSelectedCloudId] = useState<string>("");
   const [statusMsg, setStatusMsg] = useState<string>("");
