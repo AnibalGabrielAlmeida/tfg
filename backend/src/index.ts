@@ -14,7 +14,14 @@ const PORT = process.env.PORT || 4000;
 app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_ORIGIN,
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
+
+// 🔑 manejar preflight explícitamente
+app.options("*", cors());
+
 
 app.use(express.json());
 
