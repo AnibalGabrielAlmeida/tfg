@@ -20,8 +20,7 @@ app.use(cors({
 }));
 
 // 🔑 manejar preflight explícitamente
-app.options("*", cors());
-
+app.options("/*", cors());
 
 app.use(express.json());
 
