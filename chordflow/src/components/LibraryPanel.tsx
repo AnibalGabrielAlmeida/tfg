@@ -56,8 +56,8 @@ export default function LibraryPanel({
   }
 
   // ----- Nube -----
-  const [email, setEmail] = useState("test@test.com");
-  const [password, setPassword] = useState("123456");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [cloudItems, setCloudItems] = useState<CloudRow[]>([]);
   const [selectedCloudId, setSelectedCloudId] = useState<string>("");
   const [statusMsg, setStatusMsg] = useState<string>("");

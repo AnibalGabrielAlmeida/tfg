@@ -1,4 +1,5 @@
 import { pool } from "../config/db";
+import { AppError } from "../utils/AppError";
 
 type CreateProgressionDTO = {
   title: string;
@@ -13,11 +14,11 @@ function validateCreatePayload(body: any): CreateProgressionDTO {
   const { title, data, style, bpm, time_signature, key_id } = body ?? {};
 
   if (!title || typeof title !== "string") {
-    throw new Error("title es obligatorio (string)");
+    throw new AppError("title es obligatorio (string)", 400);
   }
 
   if (data === undefined || data === null) {
-    throw new Error("data es obligatorio (JSON)");
+    throw new AppError("data es obligatorio (JSON)", 400);
   }
 
   return {
@@ -32,7 +33,6 @@ function validateCreatePayload(body: any): CreateProgressionDTO {
 
 export async function createProgressionService(userId: string, body: any) {
   const payload = validateCreatePayload(body);
-  console.log("DATA TYPE:", typeof payload.data);
 
   const result = await pool.query(
   `INSERT INTO progressions (user_id, key_id, title, style, bpm, time_signature, data)
@@ -74,7 +74,7 @@ export async function getProgressionByIdService(userId: string, id: string) {
   );
 
   if (result.rowCount === 0) {
-    throw new Error("No encontrada (o no pertenece al usuario)");
+    throw new AppError("No encontrada (o no pertenece al usuario)", 404);
   }
 
   return result.rows[0];

@@ -4,6 +4,7 @@ import {
   listProgressionsService,
   getProgressionByIdService,
 } from "../services/progressions.service";
+import { handleError } from "../utils/handleError";
 
 export async function createProgression(req: Request, res: Response) {
   try {
@@ -11,8 +12,8 @@ export async function createProgression(req: Request, res: Response) {
 
     const created = await createProgressionService(userId, req.body);
     return res.status(201).json(created);
-  } catch (error: any) {
-    return res.status(400).json({ error: error.message });
+  } catch (error) {
+    return handleError(res, error);
   }
 }
 
@@ -22,8 +23,8 @@ export async function listProgressions(req: Request, res: Response) {
 
     const rows = await listProgressionsService(userId);
     return res.json(rows);
-  } catch (error: any) {
-    return res.status(400).json({ error: error.message });
+  } catch (error) {
+    return handleError(res, error);
   }
 }
 
@@ -34,8 +35,8 @@ export async function getProgressionById(req: Request, res: Response) {
 
     const row = await getProgressionByIdService(userId, id);
     return res.json(row);
-  } catch (error: any) {
-    // si no existe o no pertenece al usuario
-    return res.status(404).json({ error: error.message });
+  } catch (error) {
+    // getProgressionByIdService lanza AppError(404) si no existe o no pertenece al usuario
+    return handleError(res, error);
   }
 }

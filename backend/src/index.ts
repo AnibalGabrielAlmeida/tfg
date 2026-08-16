@@ -49,21 +49,6 @@ app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
 
 // ==========================
-// DEBUG
-// ==========================
-// console.log("CORS expectedOrigin (env):", JSON.stringify(expectedOrigin));
-//
-// app.use((req, _res, next) => {
-//   if (req.method === "OPTIONS") {
-//     console.log("PRE-FLIGHT:", req.method, req.path, "Origin:", req.headers.origin);
-//   }
-//   next();
-// });
-//
-// Si ves "expectedOrigin" vacío o distinto al Netlify real, el problema está en Render env vars.
-// Si ves Origin distinto al esperado, el problema está en la URL real que usa el navegador.
-
-// ==========================
 // MIDDLEWARE
 // ==========================
 

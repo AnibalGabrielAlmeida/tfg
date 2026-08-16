@@ -53,14 +53,6 @@ function App() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [connected, setConnected] = useState(api.isConnected());
 
-    // --- Auth + nube ---
- // const [email, setEmail] = useState("test@test.com");
- // const [password, setPassword] = useState("123456");
-  //const [cloudItems, setCloudItems] = useState<Array<{ id: string; title: string }>>([]);
- // const [selectedCloudId, setSelectedCloudId] = useState<string>("");
- // const [statusMsg, setStatusMsg] = useState<string>("");
-
-
   // Estado y operaciones sobre la progresión armónica
   const {
     progression,
@@ -181,12 +173,9 @@ function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [isPlaying, progression, bpm, key, playFromState, stopPlayback]);
 
-/*agregar comentario*/
 useEffect(() => {
   if (libraryOpen) setConnected(api.isConnected());
 }, [libraryOpen]);
-
-
 
   /**
    * Exporta la biblioteca completa de presets a un archivo JSON descargable.
@@ -280,27 +269,6 @@ useEffect(() => {
 
           {/* Banco de acordes organizado por sistemas teóricos */}
           <ChordPool keyName={key} onInsert={handleInsertFromPool} />
-
-          {/* 
-          Avisos métricos:
-          Bloque opcional que muestra compases que superan los 4 beats.
-          Se mantiene comentado en esta versión del prototipo.
-          
-          {barWarnings.length > 0 && (
-            <div
-              role="status"
-              aria-live="polite"
-              className="alert alert-warning mt-sm mb-sm"
-            >
-              <strong>Atención métrica:</strong>
-              {barWarnings.map((w) => (
-                <div key={w.bar}>
-                  Compás {w.bar} tiene {w.beats} beats (deberían ser 4).
-                </div>
-              ))}
-            </div>
-          )}
-          */}
 
           {/* Leyenda funcional con tooltips T / S / D */}
           <section className="app-legend">
