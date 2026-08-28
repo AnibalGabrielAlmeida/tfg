@@ -193,6 +193,8 @@ curl -X POST http://localhost:4000/auth/register \
 
 Then log in from the Biblioteca panel in the app. Everything except cloud save/load works without an account.
 
+**Tests:** `npm test` in `chordflow/` runs the Vitest suite over the pure theory and recommendation modules; `npm run test:watch` re-runs on save. There are no tests in `backend/` yet.
+
 **Production builds:** `npm run build` in `backend/` (`tsc` → `dist/`, then `npm start` runs `node dist/index.js`) and in `chordflow/` (`tsc -b && vite build`).
 
 **Requirements:** Node.js 18+, PostgreSQL (or a Neon connection string).
@@ -265,7 +267,7 @@ Scope limits here are deliberate; the rest are real debts, listed so a reader do
 
 **Engineering debt**
 
-- **No tests.** Neither package has a test runner or a single test file. The pure modules (`markov.ts`, `heuristics.ts`, `roman2.ts`, `metrics.ts`) are the obvious place to start — deterministic functions with no I/O.
+- **The backend has no tests.** The frontend covers its pure modules with 82 Vitest cases (`npm test` in `chordflow/`), but `backend/` has no test runner and no test file.
 - **No CI.** No `.github/` workflows; nothing runs the build, `tsc` or `npm run lint` on push.
 - **No containerization.** No `Dockerfile` or `docker-compose.yml`, so local setup means installing Postgres by hand.
 - **The backend forces SSL on the database connection**, which makes a default local Postgres unusable without editing the source.
@@ -283,7 +285,7 @@ Scope limits here are deliberate; the rest are real debts, listed so a reader do
 
 ## Future Work
 
-- Tests on the pure modules, then CI running build + lint + tests
+- Tests on the backend, then CI running build + lint + tests
 - Full CRUD for cloud progressions, and registration from the UI
 - Minor mode, modal matrices and more keys; time signatures other than 4/4 (which also means touching the audio engine, not just the theory)
 - Second-order Markov model for richer context awareness
