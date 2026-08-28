@@ -151,4 +151,115 @@ describe("getScoredSuggestions — dominantes secundarios", () => {
       expect(sugerencias[0].degree).toBe(resolucion);
     }
   });
+
+  it("mantiene la resolución primera aunque el historial la penalice", () => {
+    const sugerencias = getScoredSuggestions({
+      style: "Pop",
+      key: "C",
+      currentDegree: "V/ii",
+      history: ["ii", "V", "ii", "V/ii"],
+    });
+
+    expect(sugerencias[0].degree).toBe("ii");
+  });
+});
+
+describe("getScoredSuggestions — historial de la progresión", () => {
+  it("saca del top al grado que produciría un rebote trivial", () => {
+    // Sin historial, vi es la mejor sugerencia tras I
+    const sinHistorial = getScoredSuggestions({
+      style: "Pop",
+      key: "C",
+      currentDegree: "I",
+    });
+
+    expect(sinHistorial[0].degree).toBe("vi");
+
+    // Con la progresión vi → I, volver a vi cerraría el bucle vi → I → vi
+    const conHistorial = getScoredSuggestions({
+      style: "Pop",
+      key: "C",
+      currentDegree: "I",
+      history: ["vi", "I"],
+    });
+
+    expect(conHistorial.map((s) => s.degree)).not.toContain("vi");
+  });
+
+  it("refleja la penalización en el markovWeight que ve la UI", () => {
+    const sugerencias = getScoredSuggestions({
+      style: "Pop",
+      key: "C",
+      currentDegree: "V",
+      history: ["I", "V"],
+      limit: 5,
+    });
+
+    const haciaI = sugerencias.find((s) => s.degree === "I");
+
+    expect(haciaI?.markovWeight).toBeCloseTo(4 * 0.4, 5);
+  });
+
+  it("la cadencia auténtica sobrevive a la penalización de rebote", () => {
+    // El boost Berklee de V → I (+3) pesa más que el castigo de 0.4 al
+    // peso Markov: la cadencia sigue encabezando la lista.
+    const sugerencias = getScoredSuggestions({
+      style: "Pop",
+      key: "C",
+      currentDegree: "V",
+      history: ["I", "V"],
+    });
+
+    expect(sugerencias[0].degree).toBe("I");
+  });
+
+  it("un historial vacío equivale a no pasar historial", () => {
+    const sinHistorial = getScoredSuggestions({
+      style: "Pop",
+      key: "C",
+      currentDegree: "I",
+    });
+
+    const historialVacio = getScoredSuggestions({
+      style: "Pop",
+      key: "C",
+      currentDegree: "I",
+      history: [],
+    });
+
+    expect(historialVacio).toEqual(sinHistorial);
+  });
+});
+
+describe("getScoredSuggestions — el estilo cambia las sugerencias", () => {
+  it("Pop y Neo proponen grados distintos para el mismo contexto", () => {
+    const pop = getScoredSuggestions({
+      style: "Pop",
+      key: "C",
+      currentDegree: "I",
+    }).map((s) => s.degree);
+
+    const neo = getScoredSuggestions({
+      style: "Neo",
+      key: "C",
+      currentDegree: "I",
+    }).map((s) => s.degree);
+
+    expect(neo).not.toEqual(pop);
+
+    // Neo prefiere el predominante ii, que Pop no llega a proponer tras I
+    expect(neo).toContain("ii");
+    expect(pop).not.toContain("ii");
+  });
+
+  it("Neo abre el abanico modal que Pop no ofrece", () => {
+    const neo = getScoredSuggestions({
+      style: "Neo",
+      key: "C",
+      currentDegree: "I",
+      limit: 7,
+    }).map((s) => s.degree);
+
+    expect(neo).toContain("bIII");
+  });
 });

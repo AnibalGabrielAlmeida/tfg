@@ -50,7 +50,7 @@ A side panel proposes the next degrees from the last chord in the progression, e
 
 Each suggestion carries a plain-language explanation of *why* that chord makes sense, turning every recommendation into a micro-lesson.
 
-Style selects the matrix rather than the selection method: `useSuggestions` calls the engine with `alpha = 1` for Pop and `alpha = 0` for Neo, and `getBlendedMarkovRow` can linearly blend the two matrices for intermediate values. The panel itself is deterministic — it shows the top 3 by score.
+Style selects the matrix: the engine derives `alpha = 1` for Pop and `alpha = 0` for Neo, and `getBlendedMarkovRow` can linearly blend the two matrices for intermediate values. The panel itself is deterministic — it shows the top 3 by score.
 
 ### User authentication and persistence
 
@@ -224,7 +224,11 @@ The engine lives entirely in the frontend and operates on harmonic degrees (I, i
 
 `getScoredSuggestions` scores each candidate degree as `markovWeight + berkleeBoost − voiceLeadingCost` (`recommendation/scoring.ts`). The Markov weight comes from hand-authored transition matrices per style (`markov.ts`); the boost comes from a rule table for named harmonic devices (`theory/berklee.ts`); the cost penalizes large leaps between the two chords' MIDI triads (`recommendation/heuristics.ts`).
 
-One extra mechanism is live on this path: a **tonal function fallback** — if a degree has no row in the matrix, `buildFallbackRow` constructs a generic row from its T/S/D function, so no degree is ever stranded without candidates.
+Three further mechanisms run on this path:
+
+- **Tonal function fallback** — if a degree has no row in the matrix, `buildFallbackRow` constructs a generic row from its T/S/D function, so no degree is ever stranded without candidates.
+- **Loop penalties** — `applyPenalties` reads the progression's own history and discounts a candidate that would bounce straight back to the previous chord (×0.4), one that sounded within the last four chords (×0.6), and one that repeats the current chord (×0.3). It is a pure function: the history arrives as an argument, so the same inputs always score the same.
+- **Secondary dominant resolution** — when the current chord is a secondary dominant, its expected resolution is reinforced in the Markov row and then hoisted to the front of the ranked list, so it can never be pushed out of the top N.
 
 Why: the Markov matrices capture what a style actually tends to do, including moves theory doesn't privilege, but they're a flat table with no notion of *why* a move works — and the app's main value is explaining itself. The rule table supplies that: each rule carries a description string that the UI shows next to the suggestion. Neither part alone gives both "this is idiomatic for pop" and "because ♭VII resolves to I like a backdoor cadence."
 
@@ -234,7 +238,7 @@ Trade-off: the score is a sum of three quantities on three unrelated scales, wit
 
 ### The frontend is organized by domain, not by technical layer
 
-`chordflow/src/modules/` splits into `theory/`, `recommendation/`, `audio/`, `progression/`, `storage/` and `presets/` — each holding its own logic, types and hooks together (`useProgressionManager` sits in `progression/`, `usePlayback` in `audio/`, `useSuggestions` in `recommendation/`). Only presentational components live under `components/`, and `App.tsx` does nothing but compose them and hold session state.
+`chordflow/src/modules/` splits into `theory/`, `recommendation/`, `audio/`, `progression/`, `storage/` and `presets/` — each holding its own logic, types and hooks together (`useProgressionManager` sits in `progression/`, `usePlayback` in `audio/`). Only presentational components live under `components/`, and `App.tsx` does nothing but compose them and hold session state.
 
 Why: the hard parts of this project are musical, not architectural. A `hooks/` + `utils/` + `services/` split would have scattered the harmony code across three folders and made it impossible to see the boundary between "how chords work" and "how they're drawn." The domain split also made the theory engine swappable — `roman2.ts` replaced the original `roman.ts` for the scoring path, and only the importing modules had to change.
 
@@ -257,12 +261,11 @@ Scope limits here are deliberate; the rest are real debts, listed so a reader do
 **Musical scope**
 
 - **Four keys, major mode only, 4/4 only, triads only.** `theorySets.ts` has tritone substitutions and harmonic-minor borrowings written out but commented off, because the theory engine doesn't voice them correctly yet.
-- **First-order Markov** — the engine considers only the current chord, not the progression history.
+- **First-order Markov** — the transition weights depend only on the current chord. The progression history enters afterwards, as a penalty applied to those weights, not as part of the model itself.
 - **The UI is Spanish-only**, with no i18n layer.
 
 **Written but not wired up**
 
-- **The anti-repetition penalties and the secondary-dominant guarantee never run.** `applyPenalties` (0.4 on a trivial I→V→I bounce, 0.6 on repeating the last suggestion, 0.3 on staying put) and the guaranteed resolution for secondary dominants live in `suggestNextDegree`, `suggestNextTopN` and `suggestNextDegreePop` — and none of those three functions is imported anywhere. The path the UI actually runs (`useSuggestions` → `getScoredSuggestions` → `getBlendedMarkovRow`) applies none of them.
 - **`getContextualExplanation` returns an empty string.** It's an extension point wired through `getSuggestionExplanation`, designed for a future version.
 
 **Engineering debt**

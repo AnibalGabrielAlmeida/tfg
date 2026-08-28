@@ -3,14 +3,17 @@
 // Tests: markov — Filas de transición por estilo
 // --------------------------------------------------
 // getBlendedMarkovRow es la única puerta de entrada a las matrices que
-// usa la interfaz (useSuggestions → getScoredSuggestions → aquí). Estos
+// usa la interfaz (SuggestionPanel → getScoredSuggestions → aquí). Estos
 // tests fijan la mezcla por alpha, el fallback por función tonal y la
 // forma de las matrices, que son pesos escritos a mano y por lo tanto
 // fáciles de romper con una edición distraída.
+//
+// applyPenalties se testea aparte: es pura, así que basta con pasarle un
+// historial y comprobar los factores resultantes.
 // --------------------------------------------------
 
 import { describe, it, expect } from "vitest";
-import { getBlendedMarkovRow } from "./markov";
+import { getBlendedMarkovRow, applyPenalties } from "./markov";
 
 describe("getBlendedMarkovRow — estilos puros", () => {
   it("con alpha = 1 devuelve la fila Pop tal cual", () => {
@@ -74,18 +77,30 @@ describe("getBlendedMarkovRow — mezcla lineal", () => {
     }
   });
 
-  // Cableado real de la app: useSuggestions pasa alpha = 1 para Pop y
-  // alpha = 0 para Neo, nunca deja el valor por defecto.
-  it("el alpha por defecto es 1, así que 'Neo' sin alpha devuelve pesos Pop", () => {
-    const neoPorDefecto = getBlendedMarkovRow("Neo", "I");
-    const pop = getBlendedMarkovRow("Pop", "I", 1);
+  it("deriva el alpha por defecto del estilo pedido", () => {
+    expect(getBlendedMarkovRow("Pop", "I")).toEqual(getBlendedMarkovRow("Pop", "I", 1));
+    expect(getBlendedMarkovRow("Neo", "I")).toEqual(getBlendedMarkovRow("Neo", "I", 0));
 
-    for (const grado of Object.keys(pop)) {
-      expect(neoPorDefecto[grado]).toBeCloseTo(pop[grado], 5);
+    // Pedir Neo no puede devolver la fila de Pop
+    expect(getBlendedMarkovRow("Neo", "I")).not.toEqual(getBlendedMarkovRow("Pop", "I"));
+  });
+
+  it("en los extremos no cuela grados con peso 0 de la otra matriz", () => {
+    for (const fila of [
+      getBlendedMarkovRow("Pop", "I", 1),
+      getBlendedMarkovRow("Neo", "I", 0),
+    ]) {
+      for (const peso of Object.values(fila)) {
+        expect(peso).toBeGreaterThan(0);
+      }
     }
+  });
 
-    // Los grados exclusivos de Neo aparecen, pero con peso 0
-    expect(neoPorDefecto.bIII).toBe(0);
+  it("devuelve una copia: mutar la fila no contamina la matriz", () => {
+    const fila = getBlendedMarkovRow("Pop", "I", 1);
+    fila.vi = 999;
+
+    expect(getBlendedMarkovRow("Pop", "I", 1).vi).toBe(3);
   });
 });
 
@@ -155,5 +170,64 @@ describe("matrices — consistencia general", () => {
       expect(getBlendedMarkovRow("Pop", grado, 1)[grado]).toBeUndefined();
       expect(getBlendedMarkovRow("Neo", grado, 0)[grado]).toBeUndefined();
     }
+  });
+});
+
+describe("applyPenalties — bucles y repeticiones", () => {
+  const fila = { I: 4, IV: 2, V: 2, vi: 2, ii: 1 };
+
+  it("no penaliza nada con un historial vacío", () => {
+    expect(applyPenalties(fila, [])).toEqual(fila);
+  });
+
+  it("castiga con 0.4 el rebote hacia el grado anterior", () => {
+    // Progresión I → V: volver a I cerraría el bucle I → V → I → V
+    const penalizada = applyPenalties(fila, ["I", "V"]);
+
+    expect(penalizada.I).toBeCloseTo(4 * 0.4, 5);
+  });
+
+  it("castiga con 0.6 un grado que sonó hace poco", () => {
+    // vi está en la ventana reciente, pero no es el grado anterior
+    const penalizada = applyPenalties(fila, ["vi", "IV", "V"]);
+
+    expect(penalizada.vi).toBeCloseTo(2 * 0.6, 5);
+  });
+
+  it("castiga con 0.6 · 0.3 quedarse en el grado actual", () => {
+    const penalizada = applyPenalties(fila, ["IV", "V"]);
+
+    expect(penalizada.V).toBeCloseTo(2 * 0.6 * 0.3, 5);
+  });
+
+  it("deja intactos los grados que no aparecen en el historial", () => {
+    const penalizada = applyPenalties(fila, ["I", "V"]);
+
+    expect(penalizada.IV).toBe(2);
+    expect(penalizada.ii).toBe(1);
+  });
+
+  it("olvida lo que quedó fuera de la ventana reciente", () => {
+    // ii quedó a cinco grados de distancia: ya no penaliza
+    const penalizada = applyPenalties(fila, ["ii", "I", "IV", "vi", "V"]);
+
+    expect(penalizada.ii).toBe(1);
+  });
+
+  it("nunca anula un candidato del todo", () => {
+    const penalizada = applyPenalties({ V: 0 }, ["I", "V"]);
+
+    expect(penalizada.V).toBeGreaterThan(0);
+  });
+
+  it("es pura: no muta la fila y repite el mismo resultado", () => {
+    const entrada = { I: 4, vi: 2 };
+    const historial = ["IV", "V"];
+
+    const primera = applyPenalties(entrada, historial);
+    const segunda = applyPenalties(entrada, historial);
+
+    expect(primera).toEqual(segunda);
+    expect(entrada).toEqual({ I: 4, vi: 2 });
   });
 });

@@ -57,6 +57,7 @@ function App() {
   const {
     progression,
     suggestionBaseDegree,
+    suggestionHistory,
     updateBlockDuration,
     duplicateBlock,
     deleteBlock,
@@ -294,6 +295,7 @@ useEffect(() => {
             style={style as Style}
             keyName={key}
             currentDegree={suggestionBaseDegree}
+            history={suggestionHistory}
             onApplySuggestion={applySuggestion}
           />
         </div>

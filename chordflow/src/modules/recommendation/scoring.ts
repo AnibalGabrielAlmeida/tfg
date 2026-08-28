@@ -19,7 +19,11 @@
 
 import { getBerkleeBoost } from "../theory/berklee";
 import { getVoiceLeadingCost } from "./heuristics";
-import { getBlendedMarkovRow } from "./markov";
+import {
+  getBlendedMarkovRow,
+  applyPenalties,
+  getSecondaryResolution,
+} from "./markov";
 import type { Style } from "./markov";
 
 // Motor teórico actualizado (roman2)
@@ -53,20 +57,33 @@ export interface SuggestionScore {
  * - style: estilo armónico ("Pop" | "Neo").
  * - key: tonalidad actual (C, G, D, F, etc.; mapeada a TonalKey).
  * - currentDegree: grado actual de la progresión (I, ii, V, etc.).
+ * - history: grados de la progresión en orden, para penalizar bucles y
+ *   repeticiones. Si se omite, sólo se considera el grado actual.
  * - alpha: mezcla de estilos Pop/Neo (alpha · Pop + (1 − alpha) · Neo).
+ *   Por defecto se deriva del estilo: 1 para Pop, 0 para Neo.
  * - limit: cantidad máxima de sugerencias a devolver.
  */
 export function getScoredSuggestions(params: {
   style: Style;
   key: string;
   currentDegree: string;
+  history?: string[];
   alpha?: number;
   limit?: number;
 }): SuggestionScore[] {
-  const { style, key, currentDegree, alpha = 1, limit = 3 } = params;
+  const {
+    style,
+    key,
+    currentDegree,
+    history,
+    alpha = style === "Pop" ? 1 : 0,
+    limit = 3,
+  } = params;
 
-  // 1) Obtener fila Markov mezclada según estilo y alpha
-  const row = getBlendedMarkovRow(style, currentDegree, alpha);
+  // 1) Obtener fila Markov mezclada según estilo y alpha, y penalizarla
+  //    con el historial reciente de la progresión
+  const baseRow = getBlendedMarkovRow(style, currentDegree, alpha);
+  const row = applyPenalties(baseRow, history?.length ? history : [currentDegree]);
 
   const entries = Object.entries(row);
   if (!entries.length) return [];
@@ -99,7 +116,21 @@ export function getScoredSuggestions(params: {
     };
   });
 
-  // 4) Ordenar por score descendente y devolver las mejores sugerencias
+  // 4) Ordenar por score descendente
   scored.sort((a, b) => b.score - a.score);
+
+  // 5) Garantía de resolución: si el grado actual es un dominante
+  //    secundario, su resolución encabeza la lista aunque el score no la
+  //    hubiera dejado primera. Se hace antes de recortar, de modo que la
+  //    resolución nunca puede quedar fuera del top-N.
+  const resolution = getSecondaryResolution(currentDegree);
+  if (resolution) {
+    const idx = scored.findIndex((s) => s.degree === resolution);
+    if (idx > 0) {
+      const [item] = scored.splice(idx, 1);
+      scored.unshift(item);
+    }
+  }
+
   return scored.slice(0, limit);
 }
