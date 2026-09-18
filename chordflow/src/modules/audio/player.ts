@@ -22,22 +22,28 @@ import type { ChordBlock } from "../progression/types";
 import { chordNotesFromDegree } from "../theory/roman";
 import { applyVoicing, smoothVoiceLeading } from "../theory/voicings";
 import { createEPInstrument } from "./fxChain";
+import { getNextDownbeatSwap } from "./downbeat";
 
 // --------------------------------------------------
 // 🎛️ Inicialización de transporte e instrumento
 // --------------------------------------------------
 const Transport = Tone.getTransport();
 let instrument: Tone.Sampler | null = null;
+let instrumentLoading: Promise<Tone.Sampler> | null = null;
 
 /**
  * Garantiza que el instrumento principal (Rhodes Sampler)
  * esté inicializado antes de ser utilizado.
+ *
+ * Se guarda la promesa de carga para que dos llamadas simultáneas
+ * (play y scheduleProgression al primer Play) compartan el mismo
+ * sampler en lugar de crear dos.
  */
 async function ensureInstrument() {
-  if (!instrument) {
-    instrument = await createEPInstrument();
+  if (!instrumentLoading) {
+    instrumentLoading = createEPInstrument().then((s) => (instrument = s));
   }
-  return instrument;
+  return instrumentLoading;
 }
 
 // --------------------------------------------------
@@ -45,6 +51,9 @@ async function ensureInstrument() {
 // --------------------------------------------------
 let scheduledIds: number[] = [];
 let pendingReschedule: number | null = null;
+
+// Fin del loop programado actualmente, en ticks
+let loopEndTicks = 0;
 
 // Último voicing ejecutado (para aplicar smooth voice leading)
 let lastVoicing: string[] | null = null;
@@ -123,6 +132,14 @@ export async function play() {
  */
 export function stop() {
   Transport.stop();
+
+  // Un cambio que esperaba su downbeat ya no aplica: el próximo Play
+  // programa la progresión vigente desde cero.
+  if (pendingReschedule !== null) {
+    Transport.clear(pendingReschedule);
+    pendingReschedule = null;
+  }
+
   instrument?.releaseAll();
   notifyActiveBlock(null);
 }
@@ -144,6 +161,20 @@ export async function scheduleProgression(
   key: string
 ) {
   const synth = await ensureInstrument();
+  scheduleEvents(synth, progression, bpm, key);
+}
+
+/**
+ * Parte sincrónica de scheduleProgression: reemplaza los eventos del
+ * Transport sin esperar nada. Es la que se usa dentro de un callback del
+ * Transport, donde un await dejaría pasar el tick que se quiere agendar.
+ */
+function scheduleEvents(
+  synth: Tone.Sampler,
+  progression: ChordBlock[],
+  bpm: number,
+  key: string
+) {
   clearScheduled();
   lastVoicing = null;
   notifyActiveBlock(null);
@@ -154,12 +185,14 @@ export async function scheduleProgression(
   const ppq = Tone.Transport.PPQ;
   const beats = Math.max(1, totalBeats(progression));
   const loopStartTicks = 0;
-  const loopEndTicks = beats * ppq;
+  loopEndTicks = Math.round(beats * ppq);
 
-  // Definición del loop en términos de Ticks
+  // Definición del loop en Ticks ("192i"): se pasan directamente, sin
+  // convertir a segundos, para que un cambio de tempo en curso no desplace
+  // los límites del loop.
   Transport.loop = true;
-  Transport.loopStart = Tone.Ticks(loopStartTicks).toSeconds();
-  Transport.loopEnd = Tone.Ticks(loopEndTicks).toSeconds();
+  Transport.loopStart = `${loopStartTicks}i`;
+  Transport.loopEnd = `${loopEndTicks}i`;
 
   // Evento inicial para asegurar que no queden notas sostenidas
   const releaseId = Transport.schedule(() => synth.releaseAll(), "0:0:0");
@@ -220,6 +253,10 @@ export async function scheduleProgression(
  * compás completo), evitando cortes abruptos cuando se actualizan
  * la progresión, el tempo o la tonalidad mientras el Transport
  * se encuentra en reproducción.
+ *
+ * El reemplazo de eventos ocurre un tick antes del downbeat (ver
+ * getNextDownbeatSwap), de forma sincrónica, para que el acorde del
+ * downbeat ya sea el de la progresión nueva.
  */
 export async function rescheduleAtNextDownbeat(
   progression: ChordBlock[],
@@ -234,22 +271,25 @@ export async function rescheduleAtNextDownbeat(
     return;
   }
 
+  // Con el transporte corriendo el instrumento ya está cargado; se
+  // obtiene aquí para que el callback no tenga que esperar nada.
+  const synth = await ensureInstrument();
+
   // Si ya hay un reschedule pendiente, se limpia antes de programar otro
   if (pendingReschedule !== null) {
     Transport.clear(pendingReschedule);
     pendingReschedule = null;
   }
 
-  const ppq = Tone.Transport.PPQ;
-  const ticksPerMeasure = ppq * 4;
-  const nowTicks = Tone.Transport.ticks;
+  const ticksPerMeasure = Tone.Transport.PPQ * 4;
+  const { swapTick } = getNextDownbeatSwap(
+    Tone.Transport.ticks,
+    ticksPerMeasure,
+    loopEndTicks
+  );
 
-  // Cálculo del próximo inicio de compás (downbeat)
-  const nextDownbeatTicks =
-    Math.ceil(nowTicks / ticksPerMeasure) * ticksPerMeasure;
-
-  pendingReschedule = Transport.scheduleOnce(async () => {
-    await scheduleProgression(progression, bpm, key);
+  pendingReschedule = Transport.scheduleOnce(() => {
     pendingReschedule = null;
-  }, Tone.Ticks(nextDownbeatTicks));
+    scheduleEvents(synth, progression, bpm, key);
+  }, Tone.Ticks(swapTick));
 }
