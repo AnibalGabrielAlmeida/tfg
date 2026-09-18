@@ -21,20 +21,10 @@
 import {
   romanToMidiTriad,
   midiToNoteName,
+  isTonalKey as isValidTonalKey,
   type TonalKey,
   type RomanDegree,
 } from "./roman2";
-
-/**
- * Lista de tonalidades admitidas por el motor PRO.
- */
-const TONAL_KEYS: TonalKey[] = [
-  "C","C#","D","D#","E","F","F#","G","G#","A","A#","B",
-];
-
-function isValidTonalKey(k: string): k is TonalKey {
-  return TONAL_KEYS.includes(k as TonalKey);
-}
 
 /**
  * Conjunto de grados soportados por el motor PRO.

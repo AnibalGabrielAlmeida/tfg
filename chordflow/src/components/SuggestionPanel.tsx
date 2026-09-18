@@ -34,6 +34,12 @@ type Props = {
   /** Grado actual de la progresión (en notación romana) */
   currentDegree: string;
 
+  /**
+   * Opcional: grados de la progresión en orden, del primero al último.
+   * El motor los usa para penalizar bucles triviales y repeticiones.
+   */
+  history?: string[];
+
   /** Callback para aplicar la sugerencia seleccionada a la progresión */
   onApplySuggestion: (degree: string) => void;
 
@@ -64,22 +70,25 @@ export default function SuggestionPanel({
   style,
   keyName,
   currentDegree,
+  history,
   onApplySuggestion,
   onPreviewSuggestion,
 }: Props) {
   const [tab, setTab] = useState<"theory" | "style">("theory");
 
-  // Calcula las sugerencias ponderadas según el estilo, tonalidad y grado actual
+  // Calcula las sugerencias ponderadas según el estilo, tonalidad, grado
+  // actual e historial reciente. El alpha no se fija aquí: se deriva del
+  // estilo dentro del motor, para que Pop y Neo usen su propia matriz.
   const suggestions = useMemo(
     () =>
       getScoredSuggestions({
         style,
         key: keyName,
         currentDegree,
-        alpha: 1,
+        history,
         limit: 3,
       }),
-    [style, keyName, currentDegree]
+    [style, keyName, currentDegree, history]
   );
 
   const currentRole = functionalRoleMajor(currentDegree) as FunctionalRole;

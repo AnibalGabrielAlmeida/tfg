@@ -50,6 +50,13 @@ export function useProgressionManager() {
   const lastBlock = progression[progression.length - 1] ?? null;
   const suggestionBaseDegree = lastBlock?.degree ?? "I";
 
+  // Historial de grados en orden, que el motor de recomendación usa para
+  // penalizar rebotes triviales y grados que acaban de sonar.
+  const suggestionHistory = useMemo(
+    () => progression.map((b) => b.degree),
+    [progression]
+  );
+
   // --------------------------------------------------
   // Operaciones CRUD con validación métrica 4/4
   // --------------------------------------------------
@@ -177,6 +184,7 @@ export function useProgressionManager() {
     barWarnings,
     lastBlock,
     suggestionBaseDegree,
+    suggestionHistory,
     addBlock,
     updateBlockDuration,
     duplicateBlock,

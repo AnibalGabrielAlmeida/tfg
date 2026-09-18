@@ -35,9 +35,10 @@ import type { Style } from "./modules/recommendation/markov";
 import SuggestionPanel from "./components/SuggestionPanel";
 import ChordPool from "./components/ChordPool";
 import { api } from "./api/client";
+import { MAJOR_KEYS } from "./modules/theory/roman2";
 
 // Tonalidades y estilos disponibles en el prototipo
-const KEYS = ["C", "G", "D", "F"] as const;
+const KEYS = MAJOR_KEYS;
 const STYLES = ["Pop", "Neo"] as const;
 
 // -----------------------------
@@ -57,6 +58,7 @@ function App() {
   const {
     progression,
     suggestionBaseDegree,
+    suggestionHistory,
     updateBlockDuration,
     duplicateBlock,
     deleteBlock,
@@ -294,6 +296,7 @@ useEffect(() => {
             style={style as Style}
             keyName={key}
             currentDegree={suggestionBaseDegree}
+            history={suggestionHistory}
             onApplySuggestion={applySuggestion}
           />
         </div>

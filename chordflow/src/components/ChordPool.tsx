@@ -19,6 +19,7 @@ import React, { useState } from "react";
 import { THEORY_SETS } from "../modules/theory/theorySets";
 import {
   degreeToChordName,
+  isTonalKey as isValidTonalKey,
   type TonalKey,
   type RomanDegree,
 } from "../modules/theory/roman2";
@@ -36,15 +37,6 @@ type ChordPoolProps = {
 // ---------------------------------------------
 // Helpers para validar tonalidades y grados
 // ---------------------------------------------
-const TONAL_KEYS: TonalKey[] = [
-  "C", "C#", "D", "D#", "E",
-  "F", "F#", "G", "G#", "A", "A#", "B",
-];
-
-function isValidTonalKey(k: string): k is TonalKey {
-  return TONAL_KEYS.includes(k as TonalKey);
-}
-
 // Debe mantenerse consistente con el tipo RomanDegree
 const ROMAN_DEGREES: RomanDegree[] = [
   "I", "ii", "iii", "IV", "V", "vi", "vii°",

@@ -22,6 +22,11 @@
 export function functionalRoleMajor(degree: string): "T" | "S" | "D" {
   const base = degree.trim();
 
+  // El mediante y sus variantes (iii, iii7...) empiezan por "ii", de modo
+  // que las reglas de subdominante los capturarían por prefijo. Se detecta
+  // aparte para que conserven su función de tónica.
+  const isMediant = base.startsWith("iii");
+
   // Dominante claro (incluye dominantes secundarios y vii°)
   if (
     base === "V" ||
@@ -36,8 +41,7 @@ export function functionalRoleMajor(degree: string): "T" | "S" | "D" {
 
   // Subdominante típico y colores relacionados
   if (
-    base === "ii" ||
-    base.startsWith("ii") ||
+    (!isMediant && base.startsWith("ii")) ||
     base === "IV" ||
     base === "iv" ||
     base === "bVII" ||
@@ -52,7 +56,7 @@ export function functionalRoleMajor(degree: string): "T" | "S" | "D" {
     base === "Imaj7" ||
     base === "I6" ||
     base === "vi" ||
-    base === "iii"
+    isMediant
   ) {
     return "T";
   }
@@ -60,7 +64,7 @@ export function functionalRoleMajor(degree: string): "T" | "S" | "D" {
   // Heurísticas suaves para casos no estándar
   if (base.includes("V/")) return "D";      // cualquier dominante secundario
   if (base.startsWith("b")) return "S";     // acordes prestados comunes
-  if (base.includes("ii")) return "S";      // variaciones de ii
+  if (!isMediant && base.includes("ii")) return "S"; // variaciones de ii
 
   // Fallback seguro: clasificar como subdominante mantiene un
   // comportamiento armónico más estable que forzar tónica.
