@@ -10,6 +10,7 @@
 
 import { describe, it, expect } from "vitest";
 import { getScoredSuggestions } from "./scoring";
+import { MAJOR_KEYS } from "../theory/roman2";
 
 describe("getScoredSuggestions — fórmula del score", () => {
   it("suma Markov y Berklee y resta el costo de voice leading", () => {
@@ -105,7 +106,7 @@ describe("getScoredSuggestions — orden y límite", () => {
 });
 
 describe("getScoredSuggestions — independencia de la tonalidad", () => {
-  it("da el mismo resultado en las cuatro tonalidades de la app", () => {
+  it("da el mismo resultado en las doce tonalidades de la app", () => {
     const enC = getScoredSuggestions({
       style: "Pop",
       key: "C",
@@ -114,7 +115,7 @@ describe("getScoredSuggestions — independencia de la tonalidad", () => {
       limit: 4,
     });
 
-    for (const tonalidad of ["G", "D", "F"]) {
+    for (const tonalidad of MAJOR_KEYS) {
       const otra = getScoredSuggestions({
         style: "Pop",
         key: tonalidad,

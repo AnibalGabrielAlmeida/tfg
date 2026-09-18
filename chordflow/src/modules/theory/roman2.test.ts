@@ -15,6 +15,7 @@ import {
   romanToMidiTriad,
   midiToNoteName,
   degreeToChordName,
+  MAJOR_KEYS,
   type TonalKey,
   type RomanDegree,
 } from "./roman2";
@@ -120,13 +121,51 @@ describe("degreeToChordName", () => {
     expect(degreeToChordName("C", "ii")).toBe("Dm");
     expect(degreeToChordName("C", "vii°")).toBe("B°");
     expect(degreeToChordName("G", "V")).toBe("D");
-    expect(degreeToChordName("F", "IV")).toBe("A#");
+    expect(degreeToChordName("F", "IV")).toBe("Bb");
   });
 
   it("marca como menores sólo ii, iii, vi y iv", () => {
     expect(degreeToChordName("C", "iii")).toBe("Em");
     expect(degreeToChordName("C", "vi")).toBe("Am");
     expect(degreeToChordName("C", "iv")).toBe("Fm");
-    expect(degreeToChordName("C", "bIII")).toBe("D#"); // prestado mayor, sin "m"
+    expect(degreeToChordName("C", "bIII")).toBe("Eb"); // prestado mayor, sin "m"
+  });
+
+  it("escribe la fundamental según la tonalidad, no siempre con sostenidos", () => {
+    expect(degreeToChordName("C", "bVII")).toBe("Bb");
+    expect(degreeToChordName("C", "bVI")).toBe("Ab");
+    expect(degreeToChordName("D", "vii°")).toBe("C#°");
+    expect(degreeToChordName("Eb", "IV")).toBe("Ab");
+    expect(degreeToChordName("F#", "vii°")).toBe("E#°"); // séptimo grado de F#
+    expect(degreeToChordName("Bb", "V/V")).toBe("C"); // dominante de F
+  });
+
+  it("nombra los dominantes secundarios por la letra de su destino", () => {
+    expect(degreeToChordName("C", "V/ii")).toBe("A");
+    expect(degreeToChordName("C", "V/iii")).toBe("B");
+    expect(degreeToChordName("Ab", "V/vi")).toBe("C"); // vi de Ab es Fm
+    expect(degreeToChordName("E", "V/V")).toBe("F#");
+  });
+
+  it("acepta la grafía enarmónica de una tonalidad guardada con sostenidos", () => {
+    expect(romanToMidiTriad("A#", "I")).toEqual(romanToMidiTriad("Bb", "I"));
+    expect(degreeToChordName("A#", "IV")).toBe("D#"); // IV de A# se escribe D#
+  });
+});
+
+describe("MAJOR_KEYS — las 12 tonalidades que ofrece la interfaz", () => {
+  it("cubre las 12 alturas sin repetir ninguna", () => {
+    const tonicas = MAJOR_KEYS.map((k) => romanToMidiTriad(k, "I")[0] % 12);
+    expect(MAJOR_KEYS).toHaveLength(12);
+    expect(new Set(tonicas).size).toBe(12);
+  });
+
+  it("escribe la escala de cada tonalidad con las siete letras, sin repetir", () => {
+    const diatonicos: RomanDegree[] = ["I", "ii", "iii", "IV", "V", "vi", "vii°"];
+
+    for (const tonalidad of MAJOR_KEYS) {
+      const letras = diatonicos.map((g) => degreeToChordName(tonalidad, g)[0]);
+      expect(new Set(letras).size).toBe(7);
+    }
   });
 });

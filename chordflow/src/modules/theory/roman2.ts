@@ -18,10 +18,30 @@
 // - Etiquetado de acordes en componentes de UI.
 // --------------------------------------------------
 
-// 12 tonalidades mayores soportadas por el motor
+// 12 tonalidades mayores soportadas por el motor.
+// Las alteradas aceptan las dos grafías (C# / Db, etc.), de modo que
+// datos guardados con sostenidos sigan siendo válidos.
 export type TonalKey =
-  | "C" | "C#" | "D" | "D#" | "E" | "F"
-  | "F#" | "G" | "G#" | "A" | "A#" | "B";
+  | "C" | "C#" | "Db" | "D" | "D#" | "Eb" | "E" | "F"
+  | "F#" | "Gb" | "G" | "G#" | "Ab" | "A" | "A#" | "Bb" | "B";
+
+/** Todas las grafías de tonalidad que acepta el motor. */
+export const TONAL_KEYS: readonly TonalKey[] = [
+  "C", "C#", "Db", "D", "D#", "Eb", "E", "F",
+  "F#", "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B",
+];
+
+/**
+ * Las 12 tonalidades mayores con su grafía habitual (la que usa menos
+ * alteraciones en la armadura). Es la lista que ofrece la interfaz.
+ */
+export const MAJOR_KEYS = [
+  "C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B",
+] as const satisfies readonly TonalKey[];
+
+export function isTonalKey(k: string): k is TonalKey {
+  return TONAL_KEYS.includes(k as TonalKey);
+}
 
 // Grados romanos contemplados (triadas)
 export type RomanDegree =
@@ -39,12 +59,12 @@ const MAJOR_SCALE: number[] = [0, 2, 4, 5, 7, 9, 11];
 // Mapa tonalidad → nota MIDI de la tónica
 // Se toma C3 = 60 como referencia para facilitar el uso con el sampler.
 const KEY_TO_MIDI: Record<TonalKey, number> = {
-  C: 60,  "C#": 61,
-  D: 62,  "D#": 63,
+  C: 60,  "C#": 61, Db: 61,
+  D: 62,  "D#": 63, Eb: 63,
   E: 64,
-  F: 65,  "F#": 66,
-  G: 67,  "G#": 68,
-  A: 69,  "A#": 70,
+  F: 65,  "F#": 66, Gb: 66,
+  G: 67,  "G#": 68, Ab: 68,
+  A: 69,  "A#": 70, Bb: 70,
   B: 71,
 };
 
@@ -135,6 +155,62 @@ function degreeRootOffset(degree: RomanDegree): number {
   }
 }
 
+// --------------------------------------------------
+// Grafía de la fundamental
+// --------------------------------------------------
+// El número MIDI no distingue A# de Bb. Para nombrar el acorde se parte
+// de la letra: la fundamental de un grado está siempre a una cantidad fija
+// de letras de la tónica (IV → 3 letras más arriba), y la alteración es lo
+// que falta para llegar a la altura real. Así F + IV da Bb y no A#.
+
+const LETTERS = ["C", "D", "E", "F", "G", "A", "B"] as const;
+const LETTER_PC = [0, 2, 4, 5, 7, 9, 11];
+
+/** Cuántas letras separan la fundamental del grado de la tónica. */
+function degreeLetterStep(degree: RomanDegree): number {
+  switch (degree) {
+    case "I":    return 0;
+    case "ii":   return 1;
+    case "iii":
+    case "bIII": return 2;
+    case "IV":
+    case "iv":   return 3;
+    case "V":    return 4;
+    case "vi":
+    case "bVI":  return 5;
+    case "vii°":
+    case "bVII": return 6;
+
+    // V/x: una quinta (4 letras) por encima de la fundamental de x
+    case "V/ii":  return (1 + 4) % 7;
+    case "V/iii": return (2 + 4) % 7;
+    case "V/IV":  return (3 + 4) % 7;
+    case "V/V":   return (4 + 4) % 7;
+    case "V/vi":  return (5 + 4) % 7;
+
+    default:
+      return 0;
+  }
+}
+
+/**
+ * Nombre de la fundamental del grado en la tonalidad, con la alteración
+ * que corresponde según la armadura (ej.: Eb + IV → Ab, D + vii° → C#).
+ */
+function spellDegreeRoot(key: TonalKey, degree: RomanDegree): string {
+  // Una tonalidad desconocida se trata como C, igual que keyToMidiRoot
+  const tonic = isTonalKey(key) ? key : "C";
+  const keyLetter = LETTERS.indexOf(tonic[0] as (typeof LETTERS)[number]);
+  const letter = (keyLetter + degreeLetterStep(degree)) % 7;
+
+  const pc = (keyToMidiRoot(tonic) + degreeRootOffset(degree)) % 12;
+  let diff = (pc - LETTER_PC[letter] + 12) % 12;
+  if (diff > 6) diff -= 12;
+
+  const accidental = diff > 0 ? "#".repeat(diff) : "b".repeat(-diff);
+  return LETTERS[letter] + accidental;
+}
+
 /**
  * Conversor principal Roman → triada en MIDI.
  *
@@ -168,26 +244,22 @@ export function midiToNoteName(midi: number): string {
  * Devuelve un nombre textual de acorde a partir de una tonalidad
  * y un grado romano, utilizando:
  *
- * - La fundamental de la triada (sin la octava).
+ * - La fundamental escrita según la tonalidad (Bb en F mayor, no A#).
  * - Un sufijo de calidad: "m" para acordes menores, "°" para disminuidos.
  *
  * Ejemplos:
  * - degreeToChordName("C", "ii")  → "Dm"
- * - degreeToChordName("G", "V")   → "D"
+ * - degreeToChordName("F", "IV")  → "Bb"
  */
 export function degreeToChordName(
   key: TonalKey,
   degree: RomanDegree
 ): string {
-  const triad = romanToMidiTriad(key, degree);
-  const rootName = midiToNoteName(triad[0]);
-
   const quality = (() => {
     if (degree.includes("°")) return "°";
     if (["ii","iii","vi","iv"].includes(degree)) return "m";
     return ""; // triada mayor
   })();
 
-  // Eliminar la octava del nombre (C4 → C, F#3 → F#)
-  return rootName.replace(/\d+$/, "") + quality;
+  return spellDegreeRoot(key, degree) + quality;
 }
